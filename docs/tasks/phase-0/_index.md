@@ -2,11 +2,11 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-02 / 全23タスク(not_started: 23)
+生成日: 2026-07-02 / 全23タスク(not_started: 22 / done: 1)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
-| [T-001](T-001-adr-0002-language-schema-lib.md) | artifact-schema | not_started | - | ADR-0002 実装言語・schema lib決定 |
+| [T-001](T-001-adr-0002-language-schema-lib.md) | artifact-schema | done | - | ADR-0002 実装言語・schema lib決定 |
 | [T-002](T-002-dev-scaffolding.md) | artifact-schema | not_started | T-001 | 開発環境scaffolding(build / test / lint) |
 | [T-003](T-003-artifact-base-schema.md) | artifact-schema | not_started | T-001, T-002 | ArtifactBase JSON Schema定義 |
 | [T-004](T-004-core-spec-schemas.md) | artifact-schema | not_started | T-003 | コアspec schema定義(RequirementSpec / RiskSpec / OracleSpec) |
