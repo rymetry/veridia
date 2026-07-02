@@ -1,7 +1,7 @@
 # Phase 0: Foundation 実装計画
 
 対応: North Star §20 Phase 0、§21 Week 1
-status: not_started(Phaseレベルstatusの正本は [00-overview.md](00-overview.md))
+Phaseレベルstatusの正本: [00-overview.md](00-overview.md)(status値はここに複製しない。変更ルール3)
 
 ## 1. 目的とスコープ
 

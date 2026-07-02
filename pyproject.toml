@@ -8,6 +8,9 @@ requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.7,<3",
     "jsonschema>=4.21,<5",
+    # referencingはjsonschemaの推移的依存だが、$ref解決のRegistryを直接importする
+    # (schemas/README.mdの規約・tests)ため明示宣言する
+    "referencing>=0.31,<1",
 ]
 
 [dependency-groups]
@@ -34,7 +37,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# "." はリポジトリルート(models/ を名前空間パッケージとして解決するため)。
+# "." はリポジトリルート(生成パッケージ models/ を解決するため。__init__.py はT-004から生成物)。
 # tests/__init__.py の有無やimport-modeに依存させない明示指定。
 pythonpath = ["scripts", "."]
 addopts = "-ra"

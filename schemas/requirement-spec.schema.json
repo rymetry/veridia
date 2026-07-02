@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/requirement-spec.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "RequirementSpec",
+  "description": "要求仕様artifact(North Star §6.3)。ArtifactBaseを allOf で継承する。domain必須は req_id / title / acceptance_criteria(oracle設計 §9 が消費する中核)。description / business_impact / owner は抽出時点で確定しないことがあるためoptional(gateでの充足要求はGatePolicy側で行う)。末端の具象schemaのため unevaluatedProperties: false で閉じ、field名typo等をfail-fastさせる(baseは合成のため開いている。§6.1)。artifact_typeはbase側でrequiredだが、子で再宣言(const)したfieldはrequiredにも再列挙しないと生成PydanticモデルがOptional化するため重ねて列挙する",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "requirement_spec",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "req_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "要求のdomain識別子(例: REQ-ORDER-CANCEL-001)。OracleSpec.req_refs等の参照キー"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "要求の短い表題"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "要求の説明。抽出時点で書けないことがあるためoptional"
+    },
+    "acceptance_criteria": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "受け入れ条件。oracle設計(§9)の入力になるため最低1件必要。item側の制約は付けない(artifact-base.schema.json の source_refs と同じ生成器都合)"
+    },
+    "business_impact": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "ビジネス影響度。値域はNorth Starに列挙がないため実装で確定した4段階(severityと同尺度。§6.3の用例 high / §8.4の critical 比較を被覆)"
+    },
+    "owner": {
+      "type": "string",
+      "minLength": 1,
+      "description": "要求のオーナー(チーム等)"
+    }
+  },
+  "required": ["artifact_type", "req_id", "title", "acceptance_criteria"],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-REQ-001",
+      "artifact_type": "requirement_spec",
+      "version": "0.1.0",
+      "source_refs": ["internal://github/org/repo/pull/123"],
+      "created_by": {
+        "agent": "qa-analyst",
+        "skill": "requirement-extraction",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.82,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0001",
+      "created_at": "2026-07-02T10:00:00Z",
+      "req_id": "REQ-ORDER-CANCEL-001",
+      "title": "支払い承認済み注文をキャンセルできる",
+      "description": "ユーザーは条件を満たす注文をキャンセルできる",
+      "acceptance_criteria": [
+        "注文状態がCANCELLEDになる",
+        "在庫が戻る",
+        "決済がvoid/refundされる",
+        "監査ログが記録される"
+      ],
+      "business_impact": "high",
+      "owner": "order-team"
+    }
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/oracle-spec.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "OracleSpec",
+  "description": "Oracle仕様artifact(North Star §6.6)。ArtifactBaseを allOf で継承する。domain必須は oracle_id / req_refs / oracle_type / signals / pass_condition。req_refs必須は§9.1 oracle-first(OracleSpecは要求ごとに作る)による。risk_refs / human_review_required_if はoptional。末端の具象schemaのため unevaluatedProperties: false で閉じる。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "oracle_spec",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "oracle_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "oracleのdomain識別子(例: ORACLE-ORDER-CANCEL-001)"
+    },
+    "req_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "対象要求(RequirementSpec.req_id)への参照。oracle-first(§9.1)によりOracleSpecは要求ごとに作るため最低1件必要"
+    },
+    "risk_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "対象リスク(RiskSpec.risk_id)への参照。無い場合はキー省略(空配列は不可)"
+    },
+    "oracle_type": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "exact",
+          "state",
+          "contract",
+          "invariant",
+          "differential",
+          "metamorphic",
+          "statistical",
+          "model_judge",
+          "human"
+        ]
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "oracle種別。値域は§9.2 Oracle分類 + §9.3のmodel judge。生成Pydanticモデルではitemsのenumが名前付きEnum化される(意図的。string値は .value で取る)。uniqueItemsは生JSON検証でのみ強制され、生成モデルへは変換されない(既知の非対称。regression testで挙動を固定済み)"
+    },
+    "signals": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string",
+            "minLength": 1,
+            "description": "観測点の種別(例: db / api / event / audit_log / ui。§6.5 observation_points参照)。種別ごとにsignalの形が異なる(query_ref / endpoint / topic等)ため語彙も追加fieldも開いておく"
+          }
+        },
+        "required": ["type"],
+        "additionalProperties": true,
+        "$comment": "additionalProperties: true はJSON Schemaの既定だが明示する。省略すると生成Pydanticモデル(Signal)がPydantic既定のextra=ignoreになり、round-tripでsignalの中身(query_ref等)が黙って消えるため(明示するとextra=allowが生成される)"
+      },
+      "minItems": 1,
+      "description": "pass判定に使う観測signal。観測せずに判定できるoracleは無いため最低1件必要"
+    },
+    "pass_condition": {
+      "type": "string",
+      "minLength": 1,
+      "description": "pass判定条件の記述(例: all required state changes observed)"
+    },
+    "human_review_required_if": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "人間レビューへエスカレーションする条件。無い場合はキー省略(空配列は不可)"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "oracle_id",
+    "req_refs",
+    "oracle_type",
+    "signals",
+    "pass_condition"
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-ORACLE-001",
+      "artifact_type": "oracle_spec",
+      "version": "0.1.0",
+      "source_refs": ["internal://github/org/repo/pull/123"],
+      "created_by": {
+        "agent": "oracle-agent",
+        "skill": "oracle-design",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.8,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0003",
+      "created_at": "2026-07-02T10:00:00Z",
+      "oracle_id": "ORACLE-ORDER-CANCEL-001",
+      "req_refs": ["REQ-ORDER-CANCEL-001"],
+      "risk_refs": ["RISK-BILLING-001"],
+      "oracle_type": ["state", "invariant", "contract"],
+      "signals": [
+        { "type": "db", "query_ref": "order_status_check" },
+        { "type": "api", "endpoint": "GET /orders/{id}" },
+        { "type": "event", "topic": "order.cancelled" },
+        { "type": "audit_log", "event": "ORDER_CANCELLED" }
+      ],
+      "pass_condition": "all required state changes observed",
+      "human_review_required_if": [
+        "payment_result ambiguous",
+        "state_diff incomplete",
+        "security policy touched"
+      ]
+    }
+  ]
+}

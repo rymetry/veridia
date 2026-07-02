@@ -32,7 +32,7 @@ blocked_by: [T-001, T-002]
 
 - `schemas/artifact-base.schema.json`(正本。draft 2020-12、semver 0.1.0)
 - `tests/test_artifact_base_schema.py`(46件)/ `tests/test_gen_models.py`(24件)— TDD(RED→GREEN)で作成
-- `scripts/gen_models.py`(schema→Pydantic生成CLI、`--check` でdiff検証)+ 生成物 `models/artifact_base.py`(T-002からの申し送り)
+- `scripts/gen_models.py`(schema→Pydantic生成CLI、`--check` でdiff検証)+ 生成物 `models/artifact_base.py`(T-002からの申し送り)(注: T-004でディレクトリ一括生成へ移行し、生成物は `models/artifact_base_schema.py` へ改名。理由は[learning-log](../../knowledge/learning-log.md)参照)
 - `.github/workflows/ci.yml`(CI初配線: test / lint / format / _index差分 / 生成モデル差分)
 - `AGENTS.md`(構成マップに `models/` 追加、コマンド表に生成・差分検証を追記)、`schemas/README.md`($id・semver・再生成ルール追記)、`pyproject.toml`(ruffから生成物 `models/` を除外)
 

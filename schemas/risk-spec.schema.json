@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/risk-spec.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "RiskSpec",
+  "description": "リスクartifact(North Star §6.4)。ArtifactBaseを allOf で継承する。domain必須は risk_id / title / severity / likelihood(リスクマトリクスの2軸。severityは§7.2のskill preconditionが充足を要求)。detectability / risk_type / past_incident_refs / mitigation は評価時点で確定しないことがあるためoptional。末端の具象schemaのため unevaluatedProperties: false で閉じる。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "risk_spec",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "risk_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "リスクのdomain識別子(例: RISK-BILLING-001)。OracleSpec.risk_refs等の参照キー"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "リスクの短い表題"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"],
+      "description": "影響の深刻度。値域はNorth Starに列挙がないため実装で確定した4段階(§6.4 critical / §6.11 high / §8.4 gate条件 critical の用例を被覆)"
+    },
+    "likelihood": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "発生しやすさ。severityと違い critical は意味を成さないため3段階"
+    },
+    "detectability": {
+      "type": "string",
+      "enum": ["low", "medium", "high"],
+      "description": "検出しやすさ(FMEAの第3軸)。評価できない段階があるためoptional"
+    },
+    "risk_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "リスク種別(例: financial / security / privacy)。一般リスクの語彙はNorth Starで固定されていないため開いたstring(性能リスクは§6.19 PerformanceRiskSpecが別schemaで独自enumを持つ)"
+    },
+    "past_incident_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "過去incidentへの参照。無い場合はキー省略(空配列は不可)"
+    },
+    "mitigation": {
+      "type": "string",
+      "minLength": 1,
+      "description": "緩和策の記述"
+    }
+  },
+  "required": ["artifact_type", "risk_id", "title", "severity", "likelihood"],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-RISK-001",
+      "artifact_type": "risk_spec",
+      "version": "0.1.0",
+      "source_refs": ["internal://incidents/INC-2026-014"],
+      "created_by": {
+        "agent": "qa-analyst",
+        "skill": "risk-analysis",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.75,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0002",
+      "created_at": "2026-07-02T10:00:00Z",
+      "risk_id": "RISK-BILLING-001",
+      "title": "キャンセル時の誤請求",
+      "severity": "critical",
+      "likelihood": "medium",
+      "detectability": "medium",
+      "risk_type": "financial",
+      "past_incident_refs": ["INC-2026-014"],
+      "mitigation": "State oracle + payment mock + event verification"
+    }
+  ]
+}

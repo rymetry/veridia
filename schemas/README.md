@@ -5,6 +5,8 @@ North Star §6(成果物契約)のJSON Schema実装を置く。Phase 0 WS-A(`doc
 ## ルール
 
 - `artifact-base.schema.json` を共通契約(§6.1)として定義し、各artifact schemaは `allOf` で継承する
+- `$ref` は相対ファイル名(例: `"artifact-base.schema.json"`)で書く。`$id` は解決可能なURLではないため、検証する側は全schemaを `$id` で引ける `referencing.Registry` を組んでvalidatorへ渡すこと(registryなしの単体 `Draft202012Validator(schema)` は `Unresolvable` で失敗する)。参照実装: `tests/test_core_spec_schemas.py` の `build_registry()`
+- 開いたobject(追加fieldを許す)は `"additionalProperties": true` を省略せず明示する。省略すると生成Pydanticモデルが `extra=ignore` になり追加fieldを黙って捨てる(learning-log 2026-07-02参照)。**例外**: 合成用のbase schema(`artifact-base.schema.json`)には宣言しない — base側で `additionalProperties: true` を宣言すると全propertyが「評価済み」になり、子schemaの `unevaluatedProperties: false` による閉鎖が無効化されるため
 - 1 artifact type = 1ファイル。命名: `<artifact-type>.schema.json`(例: `requirement-spec.schema.json`)
 - draft 2020-12 を使う(ADR-0002)。`$id` は `https://veridia.dev/schemas/<ファイル名>`(解決可能なURLではなく識別子)
 - schemaはsemverでバージョン管理し、破壊的変更はADRを起票してから行う(§27.3)。schema自体のsemverは `$comment` に記す
