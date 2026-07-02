@@ -1,0 +1,47 @@
+# AGENTS.md — veridia 作業ガイド
+
+QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy.md`)の実装リポジトリ。
+このファイルはAIエージェント(Claude Code / Codex等)が毎セッション読む正本。`CLAUDE.md` は本ファイルへのsymlink。
+
+## リポジトリ構成マップ
+
+| パス | 役割 | 状態 |
+|---|---|---|
+| `docs/qa-agent-strategy.md` | North Star(目標アーキテクチャ)。§番号で参照する | 稼働中 |
+| `docs/plan/` | 実装計画。必ず `00-overview.md` から読む | 稼働中 |
+| `docs/tasks/` | 詳細タスク。1タスク=1ファイル(`README.md` 参照) | 稼働中 |
+| `docs/decisions/` | ADR。設計・技術判断とNorth Starからの逸脱の記録 | 稼働中 |
+| `docs/domain/` | 対象プロダクトのドメイン知識(Quality KB稼働までの仮置き) | 稼働中 |
+| `docs/knowledge/` | 実運用からの学び。North Star改訂の唯一の入力 | 稼働中 |
+| `docs/operations/` | 運用runbook・RACI・KPI運用(Phase 1以降に整備) | 予定地 |
+| `docs/archive/` | 旧版・レビュー文書 | - |
+| `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec | Phase 0で着手 |
+| `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
+| `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
+| `.claude/` | このリポジトリでの開発用エージェント設定 | - |
+
+**注意(名前空間):** `qa-skills/` はQAプラットフォームが実行時に使うskill package(§7.1)。`.claude/skills/`(このリポジトリを開発するエージェント自身の拡張)とは別物(ADR-0001参照。§7.1の `skills/` から改名した逸脱の記録あり)。
+
+## 変更ルール(必読)
+
+1. **North Starは机上の推敲で改訂しない。** 改訂は実運用の学びがある場合のみ。手順: `docs/knowledge/learning-log.md` に `northstar-proposal` として起票 → 人間の承認 → 版数を文書内で更新 → 旧版を `docs/archive/` へ。
+2. **North Starの内容を計画・タスクへ複製しない。** §番号で参照する。複製は改訂時に必ず乖離する。
+3. **statusの正本は各タスクファイルのfrontmatterのみ。** `_index.md` は集約ビュー(再生成可能)、`00-overview.md` はPhaseレベルのstatusのみを持つ。同じstatusを2箇所に書かない。
+4. **Redaction必須。** `docs/` 配下に secret / PII / 本番データの生値を書かない(North Star §15.4準拠)。incident・実運用の記録はマスキングしてから書く。
+5. **North Starからの逸脱はADRを先に書く。** `docs/decisions/` に記録してから実施する。
+6. **Phase完了はタスク消化ではなく計画mdの完了条件チェックリストで判定する。** 各項目に根拠(タスク・evidence)をリンクする。
+
+## 作業フロー(タスク実行時)
+
+1. `docs/tasks/<phase>/T-xxx.md` を読む → frontmatterの `plan_ref` が指す計画節を読む → 必要ならNorth Starの該当§を読む
+2. 実装・検証する(タスクのDoDを満たすことを確認する)
+3. タスクfrontmatterの `status` を更新する
+4. 作業中に得た知見を記録してから完了とする:
+   - 対象プロダクトの業務知識 → `docs/domain/`
+   - 運用・プロセスの学び、gate較正の気づき → `docs/knowledge/learning-log.md`
+   - 設計判断 → `docs/decisions/`
+5. `docs/tasks/<phase>/_index.md` を再生成する
+
+## 実装規約
+
+(コード導入後に追記する: build / test / lint コマンド、スタック、コーディング規約)
