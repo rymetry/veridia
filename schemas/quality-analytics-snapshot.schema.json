@@ -1,0 +1,252 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/quality-analytics-snapshot.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "QualityAnalyticsSnapshot",
+  "description": "品質分析snapshot artifact(North Star §6.17)。ArtifactBaseを allOf で継承する。domain必須は snapshot_id / scope / coverage / execution / evidence / cost。Phase 0にはこのartifactのproducerが無いため、coverage / execution / evidence / cost のbucket存在を契約し、個別metricはoptionalまたはnull許容にする。空配列・空objectは未収集または該当なしを表し、source_refsの根拠必須はArtifactBaseで強制する。末端の具象schemaのため unevaluatedProperties: false で閉じる。各bucketは運用metric追加を想定して additionalProperties: true を明示する。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "quality_analytics_snapshot",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "snapshot_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "QualityAnalyticsSnapshotのdomain識別子(例: QAS-20260630-001)"
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "release_candidate": {
+          "type": "string",
+          "minLength": 1,
+          "description": "snapshot対象のrelease candidate"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "snapshot対象branch"
+        },
+        "time_window": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "format": "date-time",
+              "description": "集計開始時刻(RFC 3339 date-time)"
+            },
+            "to": {
+              "type": "string",
+              "format": "date-time",
+              "description": "集計終了時刻(RFC 3339 date-time)"
+            }
+          },
+          "additionalProperties": true,
+          "description": "集計期間。運用側のwindow label等を追加できる"
+        }
+      },
+      "additionalProperties": true,
+      "description": "snapshot対象範囲。repo種別やrelease管理systemごとの追加metadataを許す"
+    },
+    "coverage": {
+      "type": "object",
+      "properties": {
+        "requirement_coverage": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "要求coverage比率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "risk_coverage": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "risk coverage比率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "oracle_definition_rate": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "oracle定義率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "evidence_completeness": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "evidence completeness比率(0.0〜1.0)。未収集の場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "coverage集約bucket。Phase 0ではproducer未定義のため個別metricは必須化しない"
+    },
+    "execution": {
+      "type": "object",
+      "properties": {
+        "total_tests": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "実行対象テスト総数。未収集の場合はnull"
+        },
+        "selected_tests": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "選択実行されたテスト数。未収集の場合はnull"
+        },
+        "passed": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "pass件数。未収集の場合はnull"
+        },
+        "failed": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "fail件数。未収集の場合はnull"
+        },
+        "inconclusive": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "inconclusive件数。未収集の場合はnull"
+        },
+        "flaky_suspected": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "flake疑い件数。未収集の場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "execution結果集約bucket。未収集metricは省略またはnullで表す"
+    },
+    "quality_intelligence": {
+      "type": "object",
+      "properties": {
+        "impacted_requirements": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "影響要求数。未収集の場合はnull"
+        },
+        "coverage_gaps": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "coverage gap数。未収集の場合はnull"
+        },
+        "untested_changes": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "未テスト変更数。未収集の場合はnull"
+        },
+        "high_risk_untested_changes": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "高リスク未テスト変更数。未収集の場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Quality Intelligenceの補助集約。§6.17サンプルに合わせるが、T-007 DoDの必須bucketではないためoptional"
+    },
+    "evidence": {
+      "type": "object",
+      "properties": {
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "集計元Evidence / runへの参照。Phase 0では未収集を空配列で表せる"
+        },
+        "evidence_count": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "集計したevidence件数。未収集の場合はnull"
+        },
+        "missing_evidence_count": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "不足evidence件数。未収集の場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "evidence集約bucket。source_refsとは別に集計元runやEvidence Store参照を保持する"
+    },
+    "cost": {
+      "type": "object",
+      "properties": {
+        "llm_cost_usd": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "LLM cost(USD)。未収集の場合はnull"
+        },
+        "test_runtime_minutes": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "テスト実行時間(分)。未収集の場合はnull"
+        },
+        "cost_per_detected_defect": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "description": "検出defectあたりcost。未収集またはdefectなしの場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "cost集約bucket。未収集metricは省略またはnullで表す"
+    }
+  },
+  "required": ["artifact_type", "snapshot_id", "scope", "coverage", "execution", "evidence", "cost"],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-QAS-001",
+      "artifact_type": "quality_analytics_snapshot",
+      "version": "0.1.0",
+      "source_refs": ["SRC-PR-123", "SRC-CI-456"],
+      "created_by": {
+        "agent": "quality-analytics-agent",
+        "skill": "quality-analytics-snapshot",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.86,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0008",
+      "created_at": "2026-07-02T10:00:00Z",
+      "snapshot_id": "QAS-20260630-001",
+      "scope": {
+        "release_candidate": "order-service@abc123",
+        "branch": "release/2026-06-30",
+        "time_window": {
+          "from": "2026-06-29T00:00:00+09:00",
+          "to": "2026-06-30T18:00:00+09:00"
+        }
+      },
+      "coverage": {
+        "requirement_coverage": 0.92,
+        "risk_coverage": 0.88,
+        "oracle_definition_rate": 0.97,
+        "evidence_completeness": 0.95
+      },
+      "execution": {
+        "total_tests": 1240,
+        "selected_tests": 312,
+        "passed": 295,
+        "failed": 9,
+        "inconclusive": 8,
+        "flaky_suspected": 5
+      },
+      "quality_intelligence": {
+        "impacted_requirements": 18,
+        "coverage_gaps": 4,
+        "untested_changes": 2,
+        "high_risk_untested_changes": 1
+      },
+      "evidence": {
+        "evidence_refs": ["RUN-001", "RUN-002"],
+        "evidence_count": 2,
+        "missing_evidence_count": 0
+      },
+      "cost": {
+        "llm_cost_usd": 42.3,
+        "test_runtime_minutes": 186,
+        "cost_per_detected_defect": 14.1
+      }
+    }
+  ]
+}

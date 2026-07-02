@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-02 / 全23タスク(not_started: 17 / done: 6)
+生成日: 2026-07-03 / 全23タスク(not_started: 16 / done: 7)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -12,7 +12,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-004](T-004-core-spec-schemas.md) | artifact-schema | done | T-003 | コアspec schema定義(RequirementSpec / RiskSpec / OracleSpec) |
 | [T-005](T-005-execution-evidence-schema.md) | artifact-schema | done | T-003 | ExecutionEvidence schema定義 |
 | [T-006](T-006-test-asset-impact-schemas.md) | artifact-schema | done | T-003 | 基盤spec schema定義(TestAssetIndex / ChangeImpactSpec) |
-| [T-007](T-007-reporting-schemas.md) | artifact-schema | not_started | T-003 | 基盤spec schema定義(QualityAnalyticsSnapshot / ReleaseReadinessReport) |
+| [T-007](T-007-reporting-schemas.md) | artifact-schema | done | T-003 | 基盤spec schema定義(QualityAnalyticsSnapshot / ReleaseReadinessReport) |
 | [T-008](T-008-artifact-validator.md) | artifact-schema | not_started | T-002, T-003, T-004, T-005, T-006, T-007 | Artifact validator実装(source_refs必須化を含む) |
 | [T-009](T-009-test-asset-index-generator.md) | artifact-schema | not_started | T-006, T-008 | TestAssetIndex generator最小版 |
 | [T-010](T-010-change-impact-generator.md) | artifact-schema | not_started | T-006, T-008 | ChangeImpactSpec候補generator最小版 |

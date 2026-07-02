@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/release-readiness-report.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "ReleaseReadinessReport",
+  "description": "release候補のreadiness report artifact(North Star §6.18)。ArtifactBaseを allOf で継承する。domain必須は report_id / release_candidate / decision_recommendation / blocking_reasons / warning_reasons / evidence_refs。pass/warn/blockの判定、理由、evidence_refsをT-007の契約として必須化する一方、readiness_scoreやsummary類はPhase 0にproducerが無いためoptionalにする。blocking_reasons / warning_reasons / evidence_refs は空配列を許し、pass判定や未収集draftでrefの捏造を要求しない。source_refsの根拠必須はArtifactBaseで強制する。末端の具象schemaのため unevaluatedProperties: false で閉じる。summary objectは運用metric追加を想定して additionalProperties: true を明示する。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "$defs": {
+    "reason": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "block / warn の理由本文"
+        },
+        "requirement_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "関連RequirementSpecへの参照"
+        },
+        "risk_ref": {
+          "type": "string",
+          "minLength": 1,
+          "description": "関連RiskSpecへの参照"
+        },
+        "evidence_refs": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "この理由を支えるEvidence / runへの参照。未収集の場合は空配列"
+        }
+      },
+      "required": ["reason"],
+      "additionalProperties": true,
+      "description": "block / warn理由。gateごとの追加metadataを許す"
+    }
+  },
+  "properties": {
+    "artifact_type": {
+      "const": "release_readiness_report",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "report_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ReleaseReadinessReportのdomain識別子(例: RRR-20260630-001)"
+    },
+    "release_candidate": {
+      "type": "string",
+      "minLength": 1,
+      "description": "readiness判定対象のrelease candidate"
+    },
+    "decision_recommendation": {
+      "type": "string",
+      "enum": ["pass", "warn", "block"],
+      "description": "release候補への推奨判定"
+    },
+    "readiness_score": {
+      "type": ["number", "null"],
+      "minimum": 0,
+      "maximum": 1,
+      "description": "readiness score(0.0〜1.0)。未収集の場合はnull"
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/reason" },
+      "description": "block理由。pass / warnでは空配列を許す"
+    },
+    "warning_reasons": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/reason" },
+      "description": "warn理由。pass / blockでは空配列を許す"
+    },
+    "coverage_summary": {
+      "type": "object",
+      "properties": {
+        "p0_p1_source_grounding": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "P0/P1 source grounding率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "p0_p1_oracle_definition": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "P0/P1 oracle定義率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "risk_coverage": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "risk coverage率(0.0〜1.0)。未収集の場合はnull"
+        },
+        "evidence_completeness": {
+          "type": ["number", "null"],
+          "minimum": 0,
+          "maximum": 1,
+          "description": "evidence completeness率(0.0〜1.0)。未収集の場合はnull"
+        }
+      },
+      "additionalProperties": true,
+      "description": "coverage系の要約。Phase 0ではproducer未定義のためoptional"
+    },
+    "quality_intelligence_summary": {
+      "type": "object",
+      "properties": {
+        "untested_changes": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "未テスト変更数。未収集の場合はnull"
+        },
+        "coverage_gaps": {
+          "type": ["integer", "null"],
+          "minimum": 0,
+          "description": "coverage gap数。未収集の場合はnull"
+        },
+        "recommended_followups": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "推奨follow-up。無い場合は空配列"
+        }
+      },
+      "additionalProperties": true,
+      "description": "Quality Intelligenceの要約。運用metric追加を許す"
+    },
+    "human_review_required": {
+      "type": "boolean",
+      "description": "このreportのdomain判定として人間レビューが必要か。ArtifactBase.requires_human_reviewとは別に、release判断上の要否を表すoptional field"
+    },
+    "required_approvers": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "必要承認者role。未確定または不要なら空配列"
+    },
+    "analytics_snapshot_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "参照したQualityAnalyticsSnapshotのsnapshot_id"
+    },
+    "residual_risk_report_ref": {
+      "type": "string",
+      "minLength": 1,
+      "description": "参照したResidualRiskReportのID"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "report全体の判定を支えるEvidence / snapshotへの参照。Phase 0では空配列を許す"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "report_id",
+    "release_candidate",
+    "decision_recommendation",
+    "blocking_reasons",
+    "warning_reasons",
+    "evidence_refs"
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-RRR-001",
+      "artifact_type": "release_readiness_report",
+      "version": "0.1.0",
+      "source_refs": ["SRC-PR-123"],
+      "created_by": {
+        "agent": "release-gate-agent",
+        "skill": "release-readiness-reporting",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.82,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0009",
+      "created_at": "2026-07-02T10:00:00Z",
+      "report_id": "RRR-20260630-001",
+      "release_candidate": "order-service@abc123",
+      "decision_recommendation": "warn",
+      "readiness_score": 0.82,
+      "blocking_reasons": [],
+      "warning_reasons": [
+        {
+          "reason": "high risk requirement has partial evidence",
+          "requirement_ref": "REQ-BILLING-021",
+          "risk_ref": "RISK-BILLING-004",
+          "evidence_refs": ["RUN-20260630-014"]
+        }
+      ],
+      "coverage_summary": {
+        "p0_p1_source_grounding": 1.0,
+        "p0_p1_oracle_definition": 1.0,
+        "risk_coverage": 0.88,
+        "evidence_completeness": 0.95
+      },
+      "quality_intelligence_summary": {
+        "untested_changes": 2,
+        "coverage_gaps": 4,
+        "recommended_followups": [
+          "add API regression for billing cancellation edge case",
+          "review skipped UI test for admin refund flow"
+        ]
+      },
+      "human_review_required": true,
+      "required_approvers": ["qa_lead", "billing_owner"],
+      "analytics_snapshot_ref": "QAS-20260630-001",
+      "residual_risk_report_ref": "RRISK-REL-20260630-001",
+      "evidence_refs": ["RUN-20260630-014", "QAS-20260630-001"]
+    }
+  ]
+}
