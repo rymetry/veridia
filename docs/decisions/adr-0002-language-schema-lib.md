@@ -111,6 +111,10 @@ agent runtimeの選定は本ADRのスコープ外(将来別ADR、ADR-0001追記)
 - agent runtime選定ADRで、選んだruntimeがTS/JS前提で、Python本体との接続コストが恒常的に問題になった場合。
 - datamodel-code-generatorによる `allOf` 継承の生成が §6.1 の要求(全27 artifactの継承)に対して破綻し、手書き二重管理や別方式が避けられなくなった場合(この場合は正本方針=Decision 3のみのsupersedeで足りる可能性がある)。
 
+## 追記(2026-07-02): 生成コマンド+CI diff検証の配線先はT-002ではなくT-003
+
+Consequences「後続タスクへの影響」ではT-002での整備を想定していたが、T-002時点では生成の入力となる `schemas/*.schema.json` が存在せず検証不能なため、T-003へ申し送りした(`docs/knowledge/learning-log.md` 2026-07-02 process-learningエントリ参照)。T-003で `scripts/gen_models.py`(決定的出力+`--check`)と `.github/workflows/ci.yml` として実装済み。本追記は事実関係の補正であり、Decision自体の変更ではない。
+
 ## 追記(2026-07-02): 承認時に確定した判断根拠
 
 オーナー承認(2026-07-02)の過程で、起案時に不明だった2点が確定した:

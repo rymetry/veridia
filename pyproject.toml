@@ -12,19 +12,21 @@ dependencies = [
 
 [dependency-groups]
 # 開発用ツール。uvのdependency-group機能で管理する(PEP 735)。
-# datamodel-code-generatorはADR-0002が定めるschema→Pydantic生成CLI。
-# schema実体(schemas/*.schema.json)はT-003で作られるため、生成コマンド自体の
-# 配線はT-003へ申し送り(docs/knowledge/learning-log.md参照)。ツールは先行して用意する。
+# datamodel-code-generatorはADR-0002が定めるschema→Pydantic生成CLI(配線はscripts/gen_models.py)。
+# 生成物のbyte単位diffをCIで検証するため範囲を狭く保つ(決定性の実保証はuv.lock)。
+# 範囲を広げる/uv lock --upgradeする際はmodels/の生成差分を必ずレビューする。
 dev = [
     "pytest>=8.2,<9",
     "ruff>=0.5,<1",
-    "datamodel-code-generator>=0.25,<1",
+    "datamodel-code-generator>=0.66.3,<0.67",
 ]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 src = ["scripts", "tests"]
+# models/ は schemas/ からの生成物(gen_models.py)。手で保守しないためlint/format対象外。
+extend-exclude = ["models"]
 
 [tool.ruff.lint]
 # E/F: pyflakes+pycodestyle, I: import順, UP: pyupgrade, B: bugbear, SIM: simplify
@@ -32,7 +34,9 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["scripts"]
+# "." はリポジトリルート(models/ を名前空間パッケージとして解決するため)。
+# tests/__init__.py の有無やimport-modeに依存させない明示指定。
+pythonpath = ["scripts", "."]
 addopts = "-ra"
 
 [tool.uv]

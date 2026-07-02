@@ -1,0 +1,49 @@
+# CI: test / lint / 生成物のdiff検証(ADR-0002の乖離防止、T-003で配線)
+# 注: run: に github.event.* 等の信頼できない入力は使わない(command injection防止)
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# repoの読み取りのみ。書き込み権限は不要(least privilege)
+permissions:
+  contents: read
+
+# 同一ref上の連続pushでは古いrunをキャンセルして重複実行を避ける
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # .python-version(3.12)をuvが読み、Python本体も自動取得する
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+
+      - name: 依存インストール
+        run: uv sync --group dev
+
+      - name: lint
+        run: uv run ruff check .
+
+      - name: format検証
+        run: uv run ruff format --check .
+
+      - name: test
+        run: uv run pytest
+
+      - name: タスク_index差分検証(statusの正本=frontmatterとの一致)
+        # 生成日はコミット済み_index.mdのものを渡す(既定の実行日だと日付だけで不一致になる)
+        run: |
+          gen_date=$(sed -n 's/^生成日: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1/p' docs/tasks/phase-0/_index.md)
+          uv run python scripts/regen_task_index.py docs/tasks/phase-0 --check --generated-on "$gen_date"
+
+      - name: 生成Pydanticモデル差分検証(正本=schemas/との一致)
+        run: uv run python scripts/gen_models.py --check

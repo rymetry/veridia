@@ -15,7 +15,8 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `docs/knowledge/` | 実運用からの学び。North Star改訂の唯一の入力 | 稼働中 |
 | `docs/operations/` | 運用runbook・RACI・KPI運用(Phase 1以降に整備) | 予定地 |
 | `docs/archive/` | 旧版・レビュー文書 | - |
-| `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec | Phase 0で着手 |
+| `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec。**正本**(ADR-0002) | 稼働中 |
+| `models/` | `schemas/` からの生成Pydanticモデル。手編集禁止(`scripts/gen_models.py` で再生成) | 稼働中 |
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
 | `.claude/` | このリポジトリでの開発用エージェント設定 | - |
@@ -50,7 +51,8 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 - パッケージ/環境/ツール管理: **uv**(依存・仮想環境・Pythonツールチェーンを単一ツールで管理。Poetryは非採用。理由: 各コマンドが単一で完結し、Python本体もuvが自動取得するため個人開発の初期セットアップが最短)
 - schema lib: Pydantic v2(コード側の型付き表現)+ jsonschema(生JSON artifactのcontract検証)。**正本は `schemas/*.schema.json`**(ADR-0002)
 - test: pytest / lint・format: ruff
-- schema→Pydantic生成: datamodel-code-generator(dev依存として用意済み。生成コマンドの配線はschema実体が揃うT-003で行う)
+- schema→Pydantic生成: datamodel-code-generator(`scripts/gen_models.py` が配線。生成物は `models/` にコミットし、CIで再生成→diff無しを検証。T-003で整備)
+- CI: GitHub Actions(`.github/workflows/ci.yml`)。push(main)/ PRで test / lint / format / _index差分 / 生成モデル差分を検証する
 
 コマンド(リポジトリルートで実行):
 
@@ -60,7 +62,12 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | test | `uv run pytest` |
 | lint | `uv run ruff check .` |
 | format | `uv run ruff format .` |
+| format検証(CI用) | `uv run ruff format --check .` |
 | _index再生成 | `uv run python scripts/regen_task_index.py docs/tasks/<phase>` |
-| _index差分検証(CI用) | `uv run python scripts/regen_task_index.py docs/tasks/<phase> --check` |
+| _index差分検証(CI用) | `uv run python scripts/regen_task_index.py docs/tasks/<phase> --check --generated-on <コミット済み_index.mdの生成日>` |
+| Pydanticモデル再生成(schemas→models) | `uv run python scripts/gen_models.py` |
+| 生成モデル差分検証(CI用) | `uv run python scripts/gen_models.py --check` |
+
+注: `_index差分検証` の `--generated-on` 既定は実行日のため、省略すると生成翌日以降は内容が最新でも日付差で不一致(false drift)になる。CIの実配線は `.github/workflows/ci.yml` 参照(コミット済み `_index.md` から生成日を抽出して渡す)。
 
 コーディング規約: イミュータブル優先(frozen dataclass等)、関数は小さく単一責務、ファイルは焦点を絞る(多数の小ファイル)、エラーは黙殺せず文脈付き例外にする、固定値は定数化する。

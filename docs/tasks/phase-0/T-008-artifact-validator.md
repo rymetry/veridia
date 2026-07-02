@@ -17,6 +17,9 @@ blocked_by: [T-002, T-003, T-004, T-005, T-006, T-007]
 
 - 計画: §2 完了条件、§3 WS-A
 - North Star: §6.1(source_refsが空のartifactはrelease gateに使えない)
+- 申し送り(T-003から):
+  - `models/`(生成Pydanticモデル)はpytest外の通常実行ではimport解決されない(`[tool.uv] package = false`)。validatorをlib+CLIとして実装する際にimport解決方式を決める([learning-log 2026-07-02 process-learningエントリ](../../knowledge/learning-log.md)参照。ADR-0002委任範囲を超える場合はADR)
+  - `created_at` の `format: date-time` は生JSON検証では注釈のみ(naive datetimeが通る)。契約意図はtimezone必須(schema description参照)であり、生JSON側でformatを強制するか(jsonschemaのFormatChecker利用等)は本タスクで決める
 
 ## DoD
 

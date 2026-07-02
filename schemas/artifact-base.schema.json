@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/artifact-base.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "ArtifactBase",
+  "description": "全agent / skillの成果物が満たす共通契約(North Star §6.1)。各artifact schemaは allOf でこれを継承してdomain固有fieldを追加するため、base側は追加プロパティを禁止しない。",
+  "type": "object",
+  "properties": {
+    "artifact_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "artifactの一意識別子(例: REQ-001)"
+    },
+    "artifact_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "artifact種別。各artifact schemaが const で自身の型名に固定する"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$",
+      "description": "artifact自体のバージョン(semver 2.0.0)"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "根拠sourceへの参照。空のartifactはrelease gateに使えない(§6.1)ため、required(キー存在)に加え minItems: 1 で空配列をrejectする(ADR-0002)。item側のminLengthは付けない(datamodel-code-generatorがitem制約を名前付きRootModelに具象化し、生成モデルの値セマンティクスを壊すため。§6.1もitem制約は要求していない)"
+    },
+    "created_by": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "string",
+          "minLength": 1
+        },
+        "skill": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": ["agent", "skill", "model"],
+      "additionalProperties": false,
+      "description": "生成主体(agent / skill / model)"
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "自己申告confidence(0.0〜1.0)。gate条件の入力に使う場合は較正が必要(§6.1の注意書き)"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "approved", "deprecated"],
+      "description": "artifactのライフサイクル状態"
+    },
+    "requires_human_review": {
+      "type": "boolean",
+      "description": "人間レビューが必要か"
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "生成runのtrace識別子(§15。ID体系の設計はT-012)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "生成時刻(RFC 3339 date-time。timezone必須が契約意図)。生成PydanticモデルはAwareDatetimeでtimezoneを強制済み。formatはdraft 2020-12では注釈のため生JSON検証では強制されず、生JSON側で強制するかはvalidator(T-008)で決める"
+    }
+  },
+  "required": [
+    "artifact_id",
+    "artifact_type",
+    "version",
+    "source_refs",
+    "created_by",
+    "confidence",
+    "status",
+    "requires_human_review",
+    "trace_id",
+    "created_at"
+  ],
+  "examples": [
+    {
+      "artifact_id": "REQ-001",
+      "artifact_type": "requirement_spec",
+      "version": "0.1.0",
+      "source_refs": ["internal://github/org/repo/pull/123"],
+      "created_by": {
+        "agent": "qa-analyst",
+        "skill": "requirement-extraction",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.82,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0001",
+      "created_at": "2026-07-02T10:00:00Z"
+    }
+  ]
+}
