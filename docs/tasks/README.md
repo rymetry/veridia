@@ -12,4 +12,4 @@
 
 ## _index.md の再生成
 
-frontmatterを集計して task_id / epic / status / タイトルの表を作る。全タスクdone後もPhase完了とは判定しない(計画mdの完了条件チェックリストが正、AGENTS.md変更ルール6)。
+frontmatterを集計して task_id / epic / status / blocked_by / タイトルの表を作る。全タスクdone後もPhase完了とは判定しない(計画mdの完了条件チェックリストが正、AGENTS.md変更ルール6)。
