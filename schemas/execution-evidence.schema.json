@@ -1,0 +1,266 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/execution-evidence.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "ExecutionEvidence",
+  "description": "実行証跡artifact(North Star §6.23)。ArtifactBaseを allOf で継承する。domain必須は run_id / test_asset_id / environment / inputs / outputs / state_before / state_after / state_diff / tool_calls / logs / screenshots / grader_results / verdict / reproduction_bundle。§15.3のEvidence Store保存対象をobject storage等への参照として保持できるよう、payload系objectとentry objectは追加fieldを許す。末端の具象schemaのため unevaluatedProperties: false で閉じる。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "execution_evidence",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "実行runの識別子(例: RUN-20260630-001)"
+    },
+    "test_asset_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "実行対象TestAssetへの参照(例: TEST-ORDER-CANCEL-001)"
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "env_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "実行環境の識別子(例: sandbox-789)"
+        },
+        "seed": {
+          "type": "string",
+          "minLength": 1,
+          "description": "fixture / seedへの参照または識別子"
+        },
+        "clock": {
+          "type": "string",
+          "format": "date-time",
+          "description": "実行時に固定したclock(RFC 3339 date-time)"
+        }
+      },
+      "required": ["env_id"],
+      "additionalProperties": true,
+      "description": "実行環境metadata。環境ごとに必要な追加metadataが異なるため開いておく"
+    },
+    "inputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "test input / fixture / seed等の保存参照またはredacted metadata(§15.3 input)。shapeは実行対象ごとに異なるため開いておく"
+    },
+    "outputs": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "test実行結果、response、UI screenshot、API response等の保存参照またはredacted metadata(§15.3 output)。shapeは実行対象ごとに異なるため開いておく"
+    },
+    "state_before": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "DB snapshot/hash、event queue、audit log等の実行前状態参照(§15.3 state before)"
+    },
+    "state_after": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "DB snapshot/hash、event queue、audit log等の実行後状態参照(§15.3 state after)"
+    },
+    "state_diff": {
+      "type": "object",
+      "additionalProperties": true,
+      "description": "実行前後の変更差分または差分保存先への参照(§6.23 / §15.3 state diff)"
+    },
+    "tool_calls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "description": "tool名"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["success", "failure", "skipped", "timeout"],
+            "description": "tool call結果"
+          }
+        },
+        "required": ["name", "status"],
+        "additionalProperties": true,
+        "$comment": "args / resultはredaction後のsummaryやobject storage参照など実行基盤ごとに異なるため追加fieldを許す"
+      },
+      "description": "tool call履歴(§6.23)。tool callが無い実行もあるため空配列を許す"
+    },
+    "logs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "redacted log保存先への参照"
+          },
+          "kind": {
+            "type": "string",
+            "enum": ["app", "test_runner", "tool", "system", "other"],
+            "description": "log種別(§15.3 logs)"
+          }
+        },
+        "required": ["ref"],
+        "additionalProperties": true,
+        "$comment": "ログは環境・runnerごとにmetadataが異なるため追加fieldを許す。additionalProperties明示により生成Pydanticモデルでextra=allowにする"
+      },
+      "description": "app log、test runner log等への参照(§15.3 logs)。logが無い実行もあるため空配列を許す"
+    },
+    "screenshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ref": {
+            "type": "string",
+            "minLength": 1,
+            "description": "screenshot/video保存先への参照"
+          },
+          "kind": {
+            "type": "string",
+            "minLength": 1,
+            "description": "capture種別(例: ui / video / trace)"
+          }
+        },
+        "required": ["ref"],
+        "additionalProperties": true
+      },
+      "description": "UI/E2E時のscreenshot/video参照(§15.3)。UIが無い実行もあるため空配列を許す"
+    },
+    "grader_results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "verdict": {
+            "type": "string",
+            "enum": ["pass", "fail", "inconclusive"],
+            "description": "grader単位の判定"
+          },
+          "score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "grader score(0.0〜1.0)"
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "grader confidence(0.0〜1.0)"
+          }
+        },
+        "required": ["verdict"],
+        "additionalProperties": true,
+        "$comment": "rationaleや詳細結果はredacted textまたはobject storage参照など複数形態があるため追加fieldを許す"
+      },
+      "description": "grader result(§15.3)。graderを使わない実行もあるため空配列を許す"
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["pass", "fail", "inconclusive"],
+      "description": "ExecutionEvidence全体の判定(§6.23)"
+    },
+    "reproduction_bundle": {
+      "type": "string",
+      "minLength": 1,
+      "description": "再実行手順、test data、environment metadataをまとめたbundleへの参照(§15.3 reproduction bundle)"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "run_id",
+    "test_asset_id",
+    "environment",
+    "inputs",
+    "outputs",
+    "state_before",
+    "state_after",
+    "state_diff",
+    "tool_calls",
+    "logs",
+    "screenshots",
+    "grader_results",
+    "verdict",
+    "reproduction_bundle"
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-EVIDENCE-001",
+      "artifact_type": "execution_evidence",
+      "version": "0.1.0",
+      "source_refs": ["internal://test-assets/TEST-ORDER-CANCEL-001"],
+      "created_by": {
+        "agent": "execution-agent",
+        "skill": "execution-evidence-capture",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.9,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0004",
+      "created_at": "2026-07-02T10:00:00Z",
+      "run_id": "RUN-20260702-001",
+      "test_asset_id": "TEST-ORDER-CANCEL-001",
+      "environment": {
+        "env_id": "sandbox-789",
+        "seed": "fixture-order-paid-v3",
+        "clock": "2026-07-02T10:00:00+09:00"
+      },
+      "inputs": {
+        "fixture_ref": "object-storage://evidence/RUN-20260702-001/input.json"
+      },
+      "outputs": {
+        "test_result_ref": "object-storage://evidence/RUN-20260702-001/result.json"
+      },
+      "state_before": {
+        "snapshot_ref": "object-storage://evidence/RUN-20260702-001/state-before.json"
+      },
+      "state_after": {
+        "snapshot_ref": "object-storage://evidence/RUN-20260702-001/state-after.json"
+      },
+      "state_diff": {
+        "ref": "object-storage://evidence/RUN-20260702-001/state-diff.json",
+        "summary": { "orders_changed": 1, "events_emitted": 1 }
+      },
+      "tool_calls": [
+        {
+          "name": "pytest",
+          "status": "success",
+          "args_ref": "object-storage://evidence/RUN-20260702-001/tool-args.json"
+        }
+      ],
+      "logs": [
+        {
+          "ref": "object-storage://evidence/RUN-20260702-001/test-runner.log",
+          "kind": "test_runner",
+          "redaction_policy": "secrets-and-pii-redacted"
+        }
+      ],
+      "screenshots": [
+        {
+          "ref": "object-storage://evidence/RUN-20260702-001/order-cancel.png",
+          "kind": "ui"
+        }
+      ],
+      "grader_results": [
+        {
+          "verdict": "pass",
+          "score": 1.0,
+          "rationale_ref": "object-storage://evidence/RUN-20260702-001/grader.json",
+          "confidence": 0.95
+        }
+      ],
+      "verdict": "pass",
+      "reproduction_bundle": "object-storage://evidence/RUN-20260702-001/repro.zip"
+    }
+  ]
+}
