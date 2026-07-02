@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-07-03 [process-learning] Evidence Store境界のredaction検出はPhase 0では呼び出し側責務として明記する(T-013)
+
+- 事実(何を観測したか): T-013のEvidence Store最小版は、ExecutionEvidenceをschema検証してmetadata DB + blob storeへ保存する境界を実装する。一方、North Star §15.4のraw secret / PII / raw production data / private chain-of-thoughtの機械的検出は、ADR-0003でもPhase 0最小として利用側redaction前提に留めている。
+- 学び(なぜ・何を変えるべきか): Phase 0ではstore APIがredaction済みpayloadだけを受け付ける運用契約をREADMEに明記し、機械的検出はTool Gateway redactionや将来のstore policy taskへ送る。Evidence Store自体が未実装の検出をしたように見せない。
+- アクション(変更したもの・リンク): `evidence_store/README.md` に保存禁止対象とPhase 0スコープ外を明記。regression guard: `tests/test_evidence_store.py` はsynthetic fixtureのみを保存する。
+
+---
+
 ## 2026-07-03 [process-learning] runtime validatorはschema正本を直接読み、date-timeは生JSON境界でtimezone必須にする(T-008)
 
 - 事実(何を観測したか): T-008でartifact validatorをlib + CLIとして実装する際、T-003からの申し送りどおり、生成Pydanticモデル `models/` は `[tool.uv] package = false` 構成の通常スクリプト実行ではimport前提にしにくいことを再確認した。また `jsonschema` の通常設定では `format: date-time` がrelease gate用の強制境界にならないため、timezone無し `created_at` を生JSON validatorが通す余地があった。
