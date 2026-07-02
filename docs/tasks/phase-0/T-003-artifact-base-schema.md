@@ -18,6 +18,7 @@ blocked_by: [T-001, T-002]
 - 計画: §3 WS-A
 - North Star: §6.1(共通必須field一覧と継承方式)
 - `schemas/README.md`(命名・継承ルール)
+- 申し送り: datamodel-code-generator生成コマンド+CI diff検証の配線はT-002から本タスクへ申し送り([learning-log 2026-07-02 process-learningエントリ](../../knowledge/learning-log.md)参照)
 
 ## DoD
 

@@ -1,0 +1,28 @@
+# epic ID → _index の「epic別内訳」表に出す表示ラベル。
+# 出力順もこの並び順に従う。
+#
+# source of truth はこのファイルではなく docs/plan/phase-0-foundation.md §3
+# (ワークストリーム分割表)。ここはその表示ラベルの写しであり、§3が改訂されたら
+# 追随する。_indexはあくまで集約ビュー(AGENTS.md変更ルール3)。
+#
+# order: 表示順。label: 「epic別内訳」表の左列に出す文字列。
+
+[[epic]]
+id = "artifact-schema"
+label = "artifact-schema(WS-A)"
+
+[[epic]]
+id = "evidence-trace-store"
+label = "evidence-trace-store(WS-B)"
+
+[[epic]]
+id = "tool-gateway"
+label = "tool-gateway(WS-C)"
+
+[[epic]]
+id = "sandbox"
+label = "sandbox(WS-D)"
+
+[[epic]]
+id = "skill-registry-gatepolicy"
+label = "skill-registry-gatepolicy(WS-E)"

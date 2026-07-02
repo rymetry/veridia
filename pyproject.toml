@@ -1,0 +1,40 @@
+[project]
+name = "veridia"
+version = "0.0.0"
+description = "QAエージェントプラットフォーム(North Star: docs/qa-agent-strategy.md)の実装リポジトリ"
+requires-python = ">=3.12"
+# 正本はschemas/*.schema.json(ADR-0002)。Pydanticはコード側の型付き表現、
+# jsonschemaは生JSON artifactのcontract検証(T-008 validatorの中核)。
+dependencies = [
+    "pydantic>=2.7,<3",
+    "jsonschema>=4.21,<5",
+]
+
+[dependency-groups]
+# 開発用ツール。uvのdependency-group機能で管理する(PEP 735)。
+# datamodel-code-generatorはADR-0002が定めるschema→Pydantic生成CLI。
+# schema実体(schemas/*.schema.json)はT-003で作られるため、生成コマンド自体の
+# 配線はT-003へ申し送り(docs/knowledge/learning-log.md参照)。ツールは先行して用意する。
+dev = [
+    "pytest>=8.2,<9",
+    "ruff>=0.5,<1",
+    "datamodel-code-generator>=0.25,<1",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["scripts", "tests"]
+
+[tool.ruff.lint]
+# E/F: pyflakes+pycodestyle, I: import順, UP: pyupgrade, B: bugbear, SIM: simplify
+select = ["E", "F", "I", "UP", "B", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["scripts"]
+addopts = "-ra"
+
+[tool.uv]
+# requires-python>=3.12を満たす管理Pythonをuvが自動取得する(uv python install不要)。
+package = false

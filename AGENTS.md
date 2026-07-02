@@ -44,4 +44,23 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 
 ## 実装規約
 
-(コード導入後に追記する: build / test / lint コマンド、スタック、コーディング規約)
+スタック(ADR-0002 / T-002で確定):
+
+- 言語: Python 3.12+(開発は `.python-version` で 3.12 に固定)
+- パッケージ/環境/ツール管理: **uv**(依存・仮想環境・Pythonツールチェーンを単一ツールで管理。Poetryは非採用。理由: 各コマンドが単一で完結し、Python本体もuvが自動取得するため個人開発の初期セットアップが最短)
+- schema lib: Pydantic v2(コード側の型付き表現)+ jsonschema(生JSON artifactのcontract検証)。**正本は `schemas/*.schema.json`**(ADR-0002)
+- test: pytest / lint・format: ruff
+- schema→Pydantic生成: datamodel-code-generator(dev依存として用意済み。生成コマンドの配線はschema実体が揃うT-003で行う)
+
+コマンド(リポジトリルートで実行):
+
+| 目的 | コマンド |
+|---|---|
+| 依存インストール(build相当) | `uv sync --group dev` |
+| test | `uv run pytest` |
+| lint | `uv run ruff check .` |
+| format | `uv run ruff format .` |
+| _index再生成 | `uv run python scripts/regen_task_index.py docs/tasks/<phase>` |
+| _index差分検証(CI用) | `uv run python scripts/regen_task_index.py docs/tasks/<phase> --check` |
+
+コーディング規約: イミュータブル優先(frozen dataclass等)、関数は小さく単一責務、ファイルは焦点を絞る(多数の小ファイル)、エラーは黙殺せず文脈付き例外にする、固定値は定数化する。

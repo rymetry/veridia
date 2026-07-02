@@ -1,0 +1,6 @@
+# Python / uv 開発環境の生成物(uv.lockは再現性のため追跡する)
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/

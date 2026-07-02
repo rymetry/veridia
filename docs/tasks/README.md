@@ -13,3 +13,5 @@
 ## _index.md の再生成
 
 frontmatterを集計して task_id / epic / status / blocked_by / タイトルの表を作る。全タスクdone後もPhase完了とは判定しない(計画mdの完了条件チェックリストが正、AGENTS.md変更ルール6)。
+
+再生成は `uv run python scripts/regen_task_index.py docs/tasks/<phase>` で行う(差分検証は `--check`)。コマンド一覧はAGENTS.md「実装規約」参照。
