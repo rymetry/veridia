@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-03 / 全23タスク(not_started: 12 / done: 11)
+生成日: 2026-07-03 / 全23タスク(not_started: 11 / done: 12)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -17,7 +17,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-009](T-009-test-asset-index-generator.md) | artifact-schema | done | T-006, T-008 | TestAssetIndex generator最小版 |
 | [T-010](T-010-change-impact-generator.md) | artifact-schema | done | T-006, T-008 | ChangeImpactSpec候補generator最小版 |
 | [T-011](T-011-adr-evidence-store-stack.md) | evidence-trace-store | done | T-001 | ADR起票 Evidence Store / Trace Store構成決定 |
-| [T-012](T-012-trace-run-id-design.md) | evidence-trace-store | not_started | T-002, T-003 | trace_id / run_id設計と生成ユーティリティ |
+| [T-012](T-012-trace-run-id-design.md) | evidence-trace-store | done | T-002, T-003 | trace_id / run_id設計と生成ユーティリティ |
 | [T-013](T-013-evidence-store-minimal.md) | evidence-trace-store | not_started | T-005, T-008, T-011, T-012 | Evidence Store最小版(保存・読み出しAPI) |
 | [T-014](T-014-trace-store-minimal.md) | evidence-trace-store | not_started | T-011, T-012 | Trace Store最小版(trace record保存・参照) |
 | [T-015](T-015-tool-gateway-minimal.md) | tool-gateway | not_started | T-002 | Tool Gateway最小版(allowlist + schema validation) |

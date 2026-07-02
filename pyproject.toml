@@ -27,7 +27,14 @@ dev = [
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-src = ["artifact_validator", "change_impact_generator", "scripts", "test_asset_index_generator", "tests"]
+src = [
+    "artifact_validator",
+    "change_impact_generator",
+    "scripts",
+    "test_asset_index_generator",
+    "tests",
+    "trace_ids",
+]
 # models/ は schemas/ からの生成物(gen_models.py)。手で保守しないためlint/format対象外。
 extend-exclude = ["models"]
 
