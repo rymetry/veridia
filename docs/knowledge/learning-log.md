@@ -4,6 +4,14 @@
 
 ---
 
+## 2026-07-03 [process-learning] runtime validatorはschema正本を直接読み、date-timeは生JSON境界でtimezone必須にする(T-008)
+
+- 事実(何を観測したか): T-008でartifact validatorをlib + CLIとして実装する際、T-003からの申し送りどおり、生成Pydanticモデル `models/` は `[tool.uv] package = false` 構成の通常スクリプト実行ではimport前提にしにくいことを再確認した。また `jsonschema` の通常設定では `format: date-time` がrelease gate用の強制境界にならないため、timezone無し `created_at` を生JSON validatorが通す余地があった。
+- 学び(なぜ・何を変えるべきか): gateの入力になるartifact contract検証は、生成モデルではなくADR-0002の正本である `schemas/*.schema.json` を直接読むruntime validatorに寄せる。`created_at` のtimezone必須意図は生JSON境界でも強制し、生成モデルとの非対称を残さない。future generator / Evidence Storeは `from artifact_validator import validate_artifact` または `python -m artifact_validator` を使い、T-008時点ではpackage設定の見直しや新規ADRに広げない。
+- アクション(変更したもの・リンク): `artifact_validator/` にschema registry + `FormatChecker` 付きvalidator + CLIを追加。`tests/test_artifact_validator.py` で7 artifact種のpass、`source_refs` 空/欠落、未知/欠落 `artifact_type`、timezone無し `created_at`、machine-readable errorを検証。記録: [T-008](../tasks/phase-0/T-008-artifact-validator.md)。
+
+---
+
 ## 2026-07-02 [process-learning] 出力契約schemaの必須度は最初のproducerのPhase能力と突き合わせて決める
 
 - 事実(何を観測したか): T-006でTestAssetIndex / ChangeImpactSpec schemaをNorth Star §6.13 / §6.9のサンプルinstanceに寄せて定義したところ、最初のproducerであるT-009 / T-010のPhase 0 DoDと矛盾した。T-009はcovered requirement / flake rate等を未収集として扱う前提で、T-010はrequirement / riskへの意味的マッピングをPhase 1以降に送る前提だったため、required + `minItems: 1` や非null必須numberはPhase 0 generatorにrefの捏造を迫る契約になった。
