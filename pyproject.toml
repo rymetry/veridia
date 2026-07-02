@@ -34,6 +34,7 @@ src = [
     "scripts",
     "test_asset_index_generator",
     "tests",
+    "trace_store",
     "trace_ids",
 ]
 # models/ は schemas/ からの生成物(gen_models.py)。手で保守しないためlint/format対象外。
