@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-03 / 全23タスク(not_started: 15 / done: 8)
+生成日: 2026-07-03 / 全23タスク(not_started: 14 / done: 9)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -14,7 +14,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-006](T-006-test-asset-impact-schemas.md) | artifact-schema | done | T-003 | 基盤spec schema定義(TestAssetIndex / ChangeImpactSpec) |
 | [T-007](T-007-reporting-schemas.md) | artifact-schema | done | T-003 | 基盤spec schema定義(QualityAnalyticsSnapshot / ReleaseReadinessReport) |
 | [T-008](T-008-artifact-validator.md) | artifact-schema | done | T-002, T-003, T-004, T-005, T-006, T-007 | Artifact validator実装(source_refs必須化を含む) |
-| [T-009](T-009-test-asset-index-generator.md) | artifact-schema | not_started | T-006, T-008 | TestAssetIndex generator最小版 |
+| [T-009](T-009-test-asset-index-generator.md) | artifact-schema | done | T-006, T-008 | TestAssetIndex generator最小版 |
 | [T-010](T-010-change-impact-generator.md) | artifact-schema | not_started | T-006, T-008 | ChangeImpactSpec候補generator最小版 |
 | [T-011](T-011-adr-evidence-store-stack.md) | evidence-trace-store | not_started | T-001 | ADR起票 Evidence Store / Trace Store構成決定 |
 | [T-012](T-012-trace-run-id-design.md) | evidence-trace-store | not_started | T-002, T-003 | trace_id / run_id設計と生成ユーティリティ |
