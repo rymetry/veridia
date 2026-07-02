@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-02 [process-learning] 出力契約schemaの必須度は最初のproducerのPhase能力と突き合わせて決める
+
+- 事実(何を観測したか): T-006でTestAssetIndex / ChangeImpactSpec schemaをNorth Star §6.13 / §6.9のサンプルinstanceに寄せて定義したところ、最初のproducerであるT-009 / T-010のPhase 0 DoDと矛盾した。T-009はcovered requirement / flake rate等を未収集として扱う前提で、T-010はrequirement / riskへの意味的マッピングをPhase 1以降に送る前提だったため、required + `minItems: 1` や非null必須numberはPhase 0 generatorにrefの捏造を迫る契約になった。
+- 学び(なぜ・何を変えるべきか): 出力契約schemaの必須度(required / minItems / nullable)は、その契約の最初のproducerタスクのDoD・Phase能力と突き合わせて決める。North Starのサンプルinstanceが全fieldを埋めていても、それだけでは必須化の根拠にならない。
+- アクション(変更したもの・リンク): T-006一次検収対応で、Phase 0 producerが未収集にできるmapping配列はrequiredのまま空配列を許し、未収集のflake_rateはnullを許す契約へ修正。regression guard: `tests/test_test_asset_impact_schemas.py` のPhase 0 generator/candidate sample。
+
 ## 2026-07-02 [process-learning] allOf外部$ref(modular reference)はdcgのファイル単位生成と両立しない — ディレクトリ一括生成へ移行(T-004)
 
 - 事実(何を観測したか): T-004でspec schemaが `allOf: [{"$ref": "artifact-base.schema.json"}]` を持った時点で、datamodel-code-generator(0.66.3)のファイル単位 `--output <file>.py` が「Modular references require an output directory」で失敗。ディレクトリ入力+ディレクトリ出力の一括生成に切り替えると成功し、`class RequirementSpec(ArtifactBase)` というクラス継承+モジュール間importが生成される。付随の実測: (1) モジュール名はdcg規則で `<type>_schema.py` になる(旧 `<type>.py` から改名)。(2) `__init__.py` も生成物になる(models/ は名前空間パッケージから通常パッケージへ)。(3) dcg既定ヘッダは入力ディレクトリ名(=一時dir名)を `__init__.py` に埋めて決定性を壊すため `--custom-file-header` で置換が必要。(4) 一括実行はschema parse失敗時のエラーにファイル名を含めないため、事前に個別JSON parseで文脈を付与する必要がある。(5) 入力ディレクトリに非schemaファイル(README等)があるとYAMLとしてparseして失敗するため、一時ディレクトリへ `*.schema.json` のみコピーして渡す。

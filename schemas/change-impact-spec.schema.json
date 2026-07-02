@@ -1,0 +1,123 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/change-impact-spec.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "ChangeImpactSpec",
+  "description": "変更影響分析artifact(North Star §6.9)。ArtifactBaseを allOf で継承する。domain必須は change_impact_id / changed_files / changed_components / impacted_requirements / impacted_risks / impacted_apis。§21 Week 1のDoDで要求される影響component / requirement / risk / APIを保持する。impacted_requirements / impacted_risks / impacted_apis はPhase 0 generator(T-010)では候補レベルのため空配列を許す。impacted_state_models / impacted_existing_tests は§6.9サンプルに合わせてoptional。末端の具象schemaのため unevaluatedProperties: false で閉じる。changed_filesはdiff parserごとのmetadataを保持するため追加fieldを許す。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "change_impact_spec",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "change_impact_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "ChangeImpactSpecのdomain識別子(例: CIS-PR-123)"
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "変更されたファイルpath"
+          },
+          "change_type": {
+            "type": "string",
+            "enum": ["added", "modified", "deleted", "renamed"],
+            "description": "PR diff上の変更種別"
+          },
+          "risk_level": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"],
+            "description": "ファイル変更単位の暫定リスク。値域はRiskSpec.severityと同じ4段階"
+          }
+        },
+        "required": ["path", "change_type", "risk_level"],
+        "additionalProperties": true,
+        "$comment": "diff parserやSCMごとに行番号・rename元・language等のmetadataが異なるため開く。additionalProperties明示により生成Pydanticモデルでextra=allowにする"
+      },
+      "minItems": 1,
+      "description": "PR diffで変更されたファイル。ChangeImpactSpecはPR差分に対して作るため最低1件必要"
+    },
+    "changed_components": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "変更により影響を受けるcomponent。§21 Week 1 DoD"
+    },
+    "impacted_requirements": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "影響を受けるRequirementSpec.req_id。Phase 0 generator(T-010)では候補レベルのため、空配列は分析済みだがマッピング未収集または該当なしを表す"
+    },
+    "impacted_risks": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "影響を受けるRiskSpec.risk_id。Phase 0 generator(T-010)では候補レベルのため、空配列は分析済みだがマッピング未収集または該当なしを表す"
+    },
+    "impacted_apis": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "影響を受けるAPI。API影響ゼロの変更もあり得るため、空配列は分析済みだがマッピング未収集または該当なしを表す"
+    },
+    "impacted_state_models": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "影響を受けるstate model。無い場合はキー省略"
+    },
+    "impacted_existing_tests": {
+      "type": "array",
+      "items": { "type": "string" },
+      "minItems": 1,
+      "description": "影響を受ける既存TestAsset。無い場合はキー省略"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "change_impact_id",
+    "changed_files",
+    "changed_components",
+    "impacted_requirements",
+    "impacted_risks",
+    "impacted_apis"
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-CIS-001",
+      "artifact_type": "change_impact_spec",
+      "version": "0.1.0",
+      "source_refs": ["SRC-PR-123"],
+      "created_by": {
+        "agent": "quality-intelligence-agent",
+        "skill": "change-impact-analysis",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.84,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0007",
+      "created_at": "2026-07-02T10:00:00Z",
+      "change_impact_id": "CIS-PR-123",
+      "changed_files": [
+        {
+          "path": "src/order/cancel_order.ts",
+          "change_type": "modified",
+          "risk_level": "high"
+        }
+      ],
+      "changed_components": ["order-service", "payment-adapter"],
+      "impacted_requirements": ["REQ-ORDER-CANCEL-001", "REQ-BILLING-VOID-002"],
+      "impacted_risks": ["RISK-BILLING-001", "RISK-AUDIT-003"],
+      "impacted_apis": ["POST /orders/{id}/cancel", "GET /orders/{id}"],
+      "impacted_state_models": ["STATE-ORDER-001"],
+      "impacted_existing_tests": ["TEST-API-ORDER-CANCEL-001"]
+    }
+  ]
+}

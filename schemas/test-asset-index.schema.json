@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/test-asset-index.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "TestAssetIndex",
+  "description": "既存テスト資産index artifact(North Star §6.13)。ArtifactBaseを allOf で継承する。domain必須は index_id / indexed_at / scope / assets。asset単位で path / test_type / covered_requirements / covered_risks / oracle_refs / stability.flake_rate を保持し、§21 Week 1のDoDを満たす。covered_requirements / covered_risks / oracle_refs はPhase 0 generator(T-009)で未収集になり得るため空配列を許し、stability.flake_rate は未収集をnullで表す。末端の具象schemaのため unevaluatedProperties: false で閉じる。assetやscopeは対象repoごとのmetadataを保持するため追加fieldを許す。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "properties": {
+    "artifact_type": {
+      "const": "test_asset_index",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "index_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "TestAssetIndexのdomain識別子(例: TAI-ORDER-001)"
+    },
+    "indexed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "index生成時刻(RFC 3339 date-time)"
+    },
+    "scope": {
+      "type": "object",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1,
+          "description": "index対象repository"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "description": "index対象branch"
+        }
+      },
+      "required": ["repository", "branch"],
+      "additionalProperties": true,
+      "description": "index対象範囲。repo種別やrunnerごとの追加metadataを許す"
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "test_id": {
+            "type": "string",
+            "minLength": 1,
+            "description": "既存テスト資産の識別子(例: TEST-API-ORDER-CANCEL-001)"
+          },
+          "test_type": {
+            "type": "string",
+            "enum": [
+              "unit",
+              "integration",
+              "api",
+              "e2e",
+              "ui",
+              "contract",
+              "performance",
+              "security",
+              "manual",
+              "other"
+            ],
+            "description": "テスト種別。§6.13の api に加え、既存テスト資産として扱う代表的な種別"
+          },
+          "path": {
+            "type": "string",
+            "minLength": 1,
+            "description": "対象repo内のテストファイルpath"
+          },
+          "covered_requirements": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "このテストがcoveredするRequirementSpec.req_id。Phase 0 generator(T-009)では未収集になり得るため、空配列はマッピング未収集または該当なしを表す"
+          },
+          "covered_risks": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "このテストがcoveredするRiskSpec.risk_id。Phase 0 generator(T-009)では未収集になり得るため、空配列はマッピング未収集または該当なしを表す"
+          },
+          "covered_apis": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "このテストがcoveredするAPI。無い場合はキー省略"
+          },
+          "covered_state_models": {
+            "type": "array",
+            "items": { "type": "string" },
+            "minItems": 1,
+            "description": "このテストがcoveredするstate model。無い場合はキー省略"
+          },
+          "oracle_refs": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "このテストが対応するOracleSpec.oracle_id。Phase 0 generator(T-009)では未収集になり得るため、空配列はマッピング未収集または該当なしを表す"
+          },
+          "stability": {
+            "type": "object",
+            "properties": {
+              "flake_rate": {
+                "type": ["number", "null"],
+                "minimum": 0,
+                "maximum": 1,
+                "description": "flake rate(0.0〜1.0)。Phase 0 generator(T-009)で未収集の場合はnull"
+              },
+              "last_failed_at": {
+                "type": ["string", "null"],
+                "format": "date-time",
+                "description": "直近失敗時刻。未失敗または不明ならnull"
+              },
+              "last_passed_at": {
+                "type": ["string", "null"],
+                "format": "date-time",
+                "description": "直近成功時刻。未成功または不明ならnull"
+              }
+            },
+            "required": ["flake_rate"],
+            "additionalProperties": true,
+            "description": "テスト安定性metadata。runnerごとの追加指標を許す"
+          },
+          "maintenance": {
+            "type": "object",
+            "properties": {
+              "owner": {
+                "type": "string",
+                "minLength": 1,
+                "description": "保守owner"
+              },
+              "last_modified": {
+                "type": "string",
+                "format": "date",
+                "description": "直近変更日"
+              },
+              "maintenance_cost": {
+                "type": "string",
+                "enum": ["low", "medium", "high"],
+                "description": "保守コストの概算"
+              }
+            },
+            "additionalProperties": true,
+            "description": "保守metadata。確定しない場合はキー省略"
+          }
+        },
+        "required": [
+          "test_id",
+          "test_type",
+          "path",
+          "covered_requirements",
+          "covered_risks",
+          "oracle_refs",
+          "stability"
+        ],
+        "additionalProperties": true,
+        "$comment": "assetはframeworkやrunnerごとに追加metadataが異なるため開く。additionalProperties明示により生成Pydanticモデルでextra=allowにする"
+      },
+      "description": "既存テスト資産の一覧。対象repoにテストが無い状態も明示できるよう空配列を許す"
+    }
+  },
+  "required": ["artifact_type", "index_id", "indexed_at", "scope", "assets"],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "ART-TAI-001",
+      "artifact_type": "test_asset_index",
+      "version": "0.1.0",
+      "source_refs": ["internal://github/org/repo/tree/main"],
+      "created_by": {
+        "agent": "test-asset-agent",
+        "skill": "existing-test-discovery",
+        "model": "claude-fable-5"
+      },
+      "confidence": 0.83,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260702-0006",
+      "created_at": "2026-07-02T10:00:00Z",
+      "index_id": "TAI-ORDER-001",
+      "indexed_at": "2026-06-30T12:00:00+09:00",
+      "scope": {
+        "repository": "order-service",
+        "branch": "main"
+      },
+      "assets": [
+        {
+          "test_id": "TEST-API-ORDER-CANCEL-001",
+          "test_type": "api",
+          "path": "tests/api/order_cancel.test.ts",
+          "covered_requirements": ["REQ-ORDER-CANCEL-001"],
+          "covered_risks": ["RISK-BILLING-001"],
+          "covered_apis": ["POST /orders/{id}/cancel"],
+          "covered_state_models": ["STATE-ORDER-001"],
+          "oracle_refs": ["ORACLE-ORDER-CANCEL-001"],
+          "stability": {
+            "flake_rate": 0.01,
+            "last_failed_at": null,
+            "last_passed_at": "2026-06-30T10:00:00+09:00"
+          },
+          "maintenance": {
+            "owner": "order-team",
+            "last_modified": "2026-06-20",
+            "maintenance_cost": "low"
+          }
+        }
+      ]
+    }
+  ]
+}
