@@ -40,11 +40,13 @@ allowed-tools: Bash(codex:*), Bash(uv:*), Bash(git:*), Read, Edit, Write
 
    実装プロンプトに含めるもの:
    - タスクファイルの絶対パスと、実装に関わる作業内容(run-taskフロー手順3〜5相当): 実装・検証、DoD各項目の検証結果を「検証方法・根拠」節へ記入、知見の記録。記録先の使い分けを明記する: 対象プロダクトの業務知識→`docs/domain/<product>/` / 運用・プロセスの学び、gate較正の気づき→`docs/knowledge/learning-log.md`(エントリに型を付ける) / 設計判断→`docs/decisions/`(North Starからの逸脱は実施**前**にADR起票。勝手に逸脱しない)
+   - 契約定義系タスク(schema等)では、その契約のproducer / consumerとなる下流タスク(当該タスクを `blocked_by` に持つタスク)のファイルパスも渡し、契約の必須度(required / minItems / nullable)を各下流タスクのDoD・Phase能力と突き合わせて決めるよう指示する(North Starのサンプルinstanceが全fieldを埋めていても必須化の根拠にしない。learning-log 2026-07-02「出力契約schemaの必須度は最初のproducerのPhase能力と突き合わせて決める」の再発防止)
    - 制約:
      - AGENTS.mdの実装規約・変更ルールに従う。タスクスコープ外の変更をしない
      - `docs/` 配下にsecret / PII / 本番データの生値を書かない(redaction必須)
      - `uv run pytest` / `uv run ruff check .` / `uv run ruff format --check .`(schema変更時は `uv run python scripts/gen_models.py` も)をグリーンにする
      - 依存パッケージの追加・更新はしない。必要になったら作業を止めて最終メッセージで報告する(サンドボックスがネットワーク遮断のため。監督者が `uv add` を代行してから `resume <session_id>` で再委譲する)
+     - uv cacheの書き込み先が必要な場合(サンドボックスは `~/.cache/uv` に書けない)は `UV_CACHE_DIR=$TMPDIR/uv-cache` などrepo外を使う。repo直下に `.uv-cache` 等のキャッシュを作らない(サンドボックスは `/tmp` / `$TMPDIR` にも書ける)
      - `status` は `in_progress` のまま(done化・`_index.md` 再生成・gitコミット・push は監督者が行うので**しない**)
      - ADR起票が目的のタスク(例: T-011, T-017)ではADRのdraft(status: proposed)作成までを行い、採択はしない。それ以外でも人間の承認が必要な事項(技術選定等)に当たったら作業を止め、最終メッセージで理由を報告する
 4. **[監督者] 一次検収**: Codexの最終メッセージ(`-o` ファイル)を読み、**自己申告を信用せず**実ファイルで裏取りする:
@@ -64,7 +66,7 @@ allowed-tools: Bash(codex:*), Bash(uv:*), Bash(git:*), Read, Edit, Write
      - < <scratchpad>/codex-fix-prompt-<task_id>-<n>.md
    ```
 6. **[監督者] 二次検収**: 修正差分に絞って確認し、テスト一式を再実行する。問題が残る場合は手順5へ戻る。**修正→検収は最大2周**(カウントするのは検収指摘に基づく手順5の修正のみ。失敗復旧のresumeや依存追加後の再委譲は数えない)。超えたら「blocked化の共通手順」(ルール節)を実施して終了する
-7. **[監督者] 完了処理**: run-taskフロー手順6〜7を実施する(「記録」節に記録先リンクを記入(なければ「なし」)、`status: done` へ更新、`_index.md` 再生成)。再生成後の整合確認に `--check` を使う場合はAGENTS.mdの `--generated-on` 注記に従う(省略すると日付差の偽陽性が出る)
+7. **[監督者] 完了処理**: run-taskフロー手順6〜7を実施する(「記録」節に記録先リンクを記入(なければ「なし」)、`status: done` へ更新、`_index.md` 再生成)。再生成後の整合確認に `--check` を使う場合はAGENTS.mdの `--generated-on` 注記に従う(省略すると日付差の偽陽性が出る)。Codexサンドボックスの残渣(repo内に作られた `.uv-cache` 等のキャッシュ。自己ignoreされ `git status` に出ないことがある)が残っていれば削除する
 8. **[監督者] コミット&push**: タスクで変更・追加したファイルのみを明示的にステージし(`git add -A` 禁止)、conventional commits形式(例: `feat: T-xxx <内容>`)でコミットしてpushする
 
 ## ルール
