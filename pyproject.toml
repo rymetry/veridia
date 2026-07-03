@@ -22,6 +22,9 @@ dev = [
     "pytest>=8.2,<9",
     "ruff>=0.5,<1",
     "datamodel-code-generator>=0.66.3,<0.67",
+    # pyyamlはskill manifest(qa-skills/*/manifest.yaml §7.1)のテスト内パースで直接import
+    # する(推移的依存に頼らない明示宣言。T-021)。実行時利用が必要になったら本体依存へ昇格する。
+    "pyyaml>=6,<7",
 ]
 
 [tool.ruff]

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/_template/output.schema.json",
+  "$comment": "template schema semver: 0.1.0。新規skill作成時に具体的な出力契約へ置き換える",
+  "title": "TemplateSkillOutput",
+  "description": "Template output contract. Replace with the concrete skill output schema.",
+  "type": "object",
+  "properties": {
+    "result": {
+      "type": "object",
+      "description": "Placeholder for the skill output artifact."
+    }
+  },
+  "required": ["result"],
+  "additionalProperties": true
+}

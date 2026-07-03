@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/_template/input.schema.json",
+  "$comment": "template schema semver: 0.1.0。新規skill作成時に具体的な入力契約へ置き換える",
+  "title": "TemplateSkillInput",
+  "description": "Template input contract. Replace with the concrete skill input schema.",
+  "type": "object",
+  "properties": {
+    "requirement": {
+      "type": "object",
+      "description": "Placeholder for a required input artifact."
+    }
+  },
+  "required": ["requirement"],
+  "additionalProperties": true
+}

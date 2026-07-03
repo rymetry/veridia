@@ -1,0 +1,4 @@
+cases:
+  - id: template-regression-001
+    prompt: "このskillの対象ワークフローを実行する"
+    expected: "route-to-skill"

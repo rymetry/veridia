@@ -1,0 +1,34 @@
+name: template-skill
+version: 0.1.0
+owner: qa-platform
+description: Template for creating a QA platform skill package.
+
+trigger:
+  positive:
+    - "このskillの対象ワークフローを実行する"
+  negative:
+    - "このskillの責務外の作業を依頼する"
+
+inputs:
+  required:
+    - RequirementSpec
+  optional:
+    - RiskSpec
+
+outputs:
+  required:
+    - SkillOutput
+
+preconditions:
+  - Required input artifacts are source-grounded.
+
+quality_gates:
+  - Output passes output.schema.json validation.
+
+validators:
+  - validators/validate_schema.py
+  - validators/validate_skill_contract.py
+
+failure_modes:
+  - Input contract drift
+  - Unverifiable output

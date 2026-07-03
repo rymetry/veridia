@@ -1,0 +1,117 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/manifest.schema.json",
+  "$comment": "schema semver: 0.1.0。skill manifestはartifactではないためschemas/*.schema.jsonのPydantic生成対象に含めない。qa-skills/配下に置き、skill package規約の正本として管理する",
+  "title": "SkillManifest",
+  "description": "QAプラットフォームskill packageのmanifest契約(North Star §7.2)。requiredはPhase 0-1のskill authorが必ず書け、T-022 registry metadataのskill_id/version/ownerおよび入出力契約の基礎として依存する name / version / owner / description / inputs / outputs に限定する。trigger / preconditions / quality_gates / validators / failure_modes は§7.2例に含まれるが、skill種別や実装段階で未確定になり得るため、存在する場合だけ型と値を検証する",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$",
+      "description": "skill_idとしてregistry metadata(T-022 / §28.2)が参照する安定識別子。ディレクトリ名と同じkebab-caseを推奨する"
+    },
+    "version": {
+      "$ref": "#/$defs/semver",
+      "description": "skill packageのsemver。registry metadata(T-022 / §28.2)のversionと一致させる"
+    },
+    "owner": {
+      "$ref": "#/$defs/nonEmptyString",
+      "description": "skillの責任主体。registry metadata(T-022 / §28.2)のownerに対応する"
+    },
+    "description": {
+      "$ref": "#/$defs/nonEmptyString",
+      "description": "skillの目的。人間がregistryやreviewで用途を判断できる最小説明"
+    },
+    "trigger": {
+      "type": "object",
+      "description": "skill起動判定の例。Phase 0-1ではskillごとに揃わない可能性があるためoptionalだが、書く場合はpositive/negativeを対で持つ",
+      "properties": {
+        "positive": { "$ref": "#/$defs/nonEmptyStringList" },
+        "negative": { "$ref": "#/$defs/nonEmptyStringList" }
+      },
+      "required": ["positive", "negative"],
+      "additionalProperties": false
+    },
+    "inputs": {
+      "$ref": "#/$defs/ioContract",
+      "description": "skillが必須入力として期待するartifact/spec名。T-022のinput_schema metadataはpackage内 input.schema.json とこの宣言を突き合わせる"
+    },
+    "outputs": {
+      "$ref": "#/$defs/ioContract",
+      "description": "skillが必ず生成するartifact/spec名。T-022のoutput_schema metadataはpackage内 output.schema.json とこの宣言を突き合わせる"
+    },
+    "preconditions": {
+      "$ref": "#/$defs/nonEmptyStringList",
+      "description": "skill実行前に満たす条件。preconditions.mdの要約として任意で列挙する"
+    },
+    "quality_gates": {
+      "$ref": "#/$defs/nonEmptyStringList",
+      "description": "skill固有の品質条件。GatePolicy(T-023)の先取りではなく、skill内の自己検査条件として任意で列挙する"
+    },
+    "validators": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^validators/[^\\s]+\\.py$"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "package内validators/配下の検証script。実装が無い段階のskillもあるためoptionalだが、書く場合は相対pathに限定する"
+    },
+    "failure_modes": {
+      "$ref": "#/$defs/nonEmptyStringList",
+      "description": "skillで想定する失敗モード。failure_modes.mdの要約として任意で列挙する"
+    }
+  },
+  "required": ["name", "version", "owner", "description", "inputs", "outputs"],
+  "additionalProperties": false,
+  "$defs": {
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonEmptyStringList": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "ioContract": {
+      "type": "object",
+      "properties": {
+        "required": { "$ref": "#/$defs/nonEmptyStringList" },
+        "optional": { "$ref": "#/$defs/nonEmptyStringList" }
+      },
+      "required": ["required"],
+      "additionalProperties": false
+    }
+  },
+  "examples": [
+    {
+      "name": "template-skill",
+      "version": "0.1.0",
+      "owner": "qa-platform",
+      "description": "Template for creating a QA platform skill package.",
+      "trigger": {
+        "positive": ["このskillの対象ワークフローを実行する"],
+        "negative": ["このskillの責務外の作業を依頼する"]
+      },
+      "inputs": {
+        "required": ["RequirementSpec"],
+        "optional": ["RiskSpec"]
+      },
+      "outputs": {
+        "required": ["SkillOutput"]
+      },
+      "preconditions": ["Required input artifacts are source-grounded."],
+      "quality_gates": ["Output passes output.schema.json validation."],
+      "validators": ["validators/validate_schema.py", "validators/validate_skill_contract.py"],
+      "failure_modes": ["Input contract drift", "Unverifiable output"]
+    }
+  ]
+}
