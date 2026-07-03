@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-07-03 [process-learning] 全緑テスト+80%超カバレッジでも実行時異常系・セキュリティ境界のテスト空白は残る(Phase 0徹底レビュー)
+
+- 事実(何を観測したか): Phase 0完了判定(545 passed、カバレッジ実測88%)の直後に行った6観点の徹底レビューで、実行再現可能なバグ4件(ExecutionEvidence `reproduction_bundle` の虚偽blob参照、diff parserのhunk境界誤認・quoted path未対応、generator CLI 2本のexcept順序による到達不能exit分岐、Tool Gateway redactionのkey名不足)を検出した。加えて、実装は正しいのにテストが一度も発火していないセキュリティ境界が3箇所(runner allowlist / repo tool path traversal / seed manifest `..` 拒否)あった。schema契約の負例テストは厚い一方、実行時コンポーネントの異常系が系統的に薄かった。
+- 学び(なぜ・何を変えるべきか): 「テストが全緑・カバレッジ80%超」はDoDの必要条件であって十分条件ではない。特に(1)防御コード(allowlist・traversal拒否・redaction)は正常系テストだけでは一生発火しない、(2)出力に埋まる参照(blob ref等)は読み出しまで往復しないと捏造に気づけない、(3)パーサは代表的fixture以外の実在形(quoted path・rename/delete)で黙って誤る。Phase完了後にPoC再現つきの実行検証型レビューを一巡させる価値がある。
+- アクション(変更したもの・リンク): 指摘全件を修正し回帰テスト+112本を追加(657 passed、CI coverage gate 80%を配線、検収レビュー合格)。修正内容は本コミットdiffを参照。あわせて `status: done` なのにDoDチェックボックス未記帳のタスクが17/23件あった点を記帳で解消 — タスク完了処理にチェックボックス記帳を含めること。
+
+## 2026-07-03 [northstar-proposal] QualityAnalyticsSnapshotのevidence bucket必須化はPhase 0のEvidence Store集約都合として扱う
+
+- 事実(何を観測したか): `quality-analytics-snapshot.schema.json` はNorth Star §6.17の例示に無い `evidence` bucketをdomain必須にしている。Phase 0ではReleaseReadinessReportやgate理由がEvidence Store / run参照を複数扱うため、QualityAnalyticsSnapshot側にもsource_refsとは別の集計bucketが必要になった。
+- 学び(なぜ・何を変えるべきか): これは§6.17の文面からの構造逸脱なので、North Star本文へ即時複製せず、実運用でsnapshot producerがこのshapeを必要とするかを確認してから改訂判断する。Phase 0ではschema `$comment` / descriptionに逸脱理由を残し、後続producer実装時に再評価する。
+- アクション(変更したもの・リンク): `schemas/quality-analytics-snapshot.schema.json` に逸脱理由と本entry参照を追記。North Star改訂は未承認のため未実施。
+
+## 2026-07-03 [process-learning] モジュールREADMEのNorth Star項目名列挙は要約であり契約複製ではないと扱う
+
+- 事実(何を観測したか): Phase 0 reviewで、モジュールREADMEにNorth Star由来の項目名を列挙する作業がタスクDoDの「明記」要求を満たす一方、AGENTS.md変更ルール2「North Starの内容を計画・タスクへ複製しない」と緊張することを確認した。
+- 学び(なぜ・何を変えるべきか): READMEでは§番号と実装境界を示し、North Star本文の詳細な要件文は複製しない。項目名列挙は利用者がmodule boundaryを理解するための要約に留め、仕様の正本性はschema / policy / North Star §参照へ戻す。
+- アクション(変更したもの・リンク): 今後のREADME修正では、North Star項目の全文複製ではなく、§番号・Phase 0スコープ・実装しないものを簡潔に書く。
+
 ## 2026-07-03 [process-learning] Phase完了判定は「テストID+再実行可能コマンド」に落ちた完了条件なら機械的に済む(Phase 0 review)
 
 - 事実(何を観測したか): /phase-reviewでPhase 0完了条件7項目を再検証した。5項目はpytestのテストID単位で、2項目(TestAssetIndex / ChangeImpactSpec生成)はCLI実実行+validator検証で、全項目をその場で再実行して確認できた(全体 `uv run pytest` 545 passed。個別根拠は [phase-0-foundation.md §2](../plan/phase-0-foundation.md) の検証記録)。generatorのtimestamp既定が決定的sentinelだったこと(T-009 / T-010)も再実行検証を安定させた。判定側の追加作業はゼロで、「充足の解釈」を要する項目が無かった。

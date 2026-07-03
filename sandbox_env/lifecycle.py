@@ -44,9 +44,11 @@ def destroy(root: Path | str) -> None:
     """Recursively delete a sandbox root if it exists."""
 
     sandbox_root = Path(root)
+    if sandbox_root.is_symlink():
+        raise SandboxEnvError(f"refusing to destroy non-directory sandbox root: {sandbox_root}")
     if not sandbox_root.exists():
         return
-    if not sandbox_root.is_dir() or sandbox_root.is_symlink():
+    if not sandbox_root.is_dir():
         raise SandboxEnvError(f"refusing to destroy non-directory sandbox root: {sandbox_root}")
 
     try:
@@ -60,7 +62,11 @@ def reset(
     *,
     manifest: SandboxManifest = DEFAULT_MANIFEST,
 ) -> SandboxEnv:
-    """Delete and recreate a sandbox root from the deterministic manifest."""
+    """Delete and recreate a sandbox root from the deterministic manifest.
+
+    Phase 0 assumes a single writer per sandbox root. This destroy-then-create reset
+    is deterministic for that local workflow, but it is not a concurrent locking boundary.
+    """
 
     destroy(root)
     return create(root, manifest=manifest)

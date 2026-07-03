@@ -6,3 +6,4 @@
 - North Star §17.0に従い、初期block段階はsource grounding / oracle / evidence / securityの4 gateに限定。
 - §17.1のgate一覧へstageとthresholdを定義。
 - §17.2の初期閾値は較正前の出発点として記録し、運用開始後4〜8週間の実測で較正する前提を明記。
+- §17.3のrisk acceptance gateは承認workflowと監査運用が必要なためPhase 0最小GatePolicyのstage/threshold対象外にし、後続Phaseで扱う。

@@ -25,6 +25,7 @@ dev = [
     # pyyamlはskill manifest(qa-skills/*/manifest.yaml §7.1)のテスト内パースで直接import
     # する(推移的依存に頼らない明示宣言。T-021)。実行時利用が必要になったら本体依存へ昇格する。
     "pyyaml>=6,<7",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.ruff]

@@ -37,5 +37,7 @@ component候補は決定的なpath規則で作る。
 ## 決定性
 
 デフォルトの `created_at` は `1970-01-01T00:00:00Z` に固定する。実運用の生成時刻を
-記録したい場合は `--generated-at` で明示する。IDはsource ref、生成時刻、変更file
-metadataのsha256から生成する。同一diffと同一引数では同一JSONになる。
+記録したい場合は `--generated-at` で明示する。artifact IDはsource ref、生成時刻、変更file
+metadataのsha256から生成する。`trace_id` は `trace-YYYYMMDD-<16hex>` 形式で、date部は
+`generated_at` の日付、hex部は同じ入力fingerprintの安定hashから作る。同一diffと同一引数では
+同一JSONになる。

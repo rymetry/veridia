@@ -108,6 +108,30 @@ def test_redacts_secret_like_argument_keys_recursively() -> None:
     }
 
 
+@pytest.mark.parametrize(
+    "key",
+    [
+        "jwt",
+        "cookie",
+        "credential",
+        "credentials",
+        "pwd",
+        "passwd",
+        "private_key",
+        "session",
+        "bearer",
+        "access_key",
+        "refresh_token",
+    ],
+)
+def test_redacts_additional_secret_like_key_names(key: str) -> None:
+    from tool_gateway import redact_tool_args
+
+    redacted = redact_tool_args({"metadata": {key: "DUMMY_SECRET_VALUE"}})
+
+    assert redacted == {"metadata": {key: MASK}}
+
+
 def test_gateway_tool_call_is_saved_with_trace_id_and_redacted_args(tmp_path: Path) -> None:
     audited_gateway, trace_store, parent_context = make_audited_gateway(
         tmp_path,
@@ -174,6 +198,48 @@ def test_rejected_tool_call_is_saved_with_error_status(tmp_path: Path) -> None:
     assert "ToolNotAllowedError" in records[0].error_summary
 
 
+def test_error_summary_redacts_secret_values_from_exception_message(tmp_path: Path) -> None:
+    from tool_gateway import AuditedToolGateway, ToolDefinition, ToolGateway, ToolRegistry
+    from trace_ids import IdFactory
+    from trace_store import TraceStore
+
+    def fail(payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        raise RuntimeError(f"credential leaked: {payload['credential']}")
+
+    factory = IdFactory(clock=lambda: FIXED_NOW, token_hex=CountingTokenHex())
+    parent_context = factory.new_trace_context()
+    audited_gateway = AuditedToolGateway(
+        gateway=ToolGateway(
+            registry=ToolRegistry.from_definitions(
+                (
+                    ToolDefinition(
+                        name="fixture.fail",
+                        input_schema={
+                            "type": "object",
+                            "required": ["credential"],
+                            "properties": {"credential": {"type": "string"}},
+                        },
+                        output_schema={"type": "object"},
+                        handler=fail,
+                    ),
+                )
+            ),
+            allowlist=frozenset({"fixture.fail"}),
+        ),
+        trace_store=TraceStore.open(tmp_path / "trace"),
+        parent_context=parent_context,
+        id_factory=factory,
+        clock=lambda: FIXED_NOW,
+    )
+
+    with pytest.raises(RuntimeError, match="credential leaked"):
+        audited_gateway.execute("fixture.fail", {"credential": "DUMMY_CREDENTIAL_VALUE"})
+
+    (record,) = audited_gateway.trace_store.find_by_trace_id(parent_context.trace_id)
+    assert "DUMMY_CREDENTIAL_VALUE" not in record.error_summary
+    assert "<redacted>" in record.error_summary
+
+
 def test_multiple_tool_calls_share_run_trace_and_record_child_spans(tmp_path: Path) -> None:
     audited_gateway, trace_store, parent_context = make_audited_gateway(
         tmp_path,
@@ -192,3 +258,61 @@ def test_multiple_tool_calls_share_run_trace_and_record_child_spans(tmp_path: Pa
         parent_context.span_id,
     )
     assert records[0].span_id != records[1].span_id
+
+
+def test_audit_clock_must_be_timezone_aware(tmp_path: Path) -> None:
+    from tool_gateway import AuditedToolGateway
+
+    audited_gateway, _trace_store, _parent_context = make_audited_gateway(
+        tmp_path,
+        allowlist=frozenset({"fixture.echo"}),
+    )
+    audited_gateway = AuditedToolGateway(
+        gateway=audited_gateway.gateway,
+        trace_store=audited_gateway.trace_store,
+        parent_context=audited_gateway.parent_context,
+        id_factory=audited_gateway.id_factory,
+        clock=lambda: datetime(2026, 7, 3, 12, 34, 56),
+    )
+
+    with pytest.raises(ValueError, match="timezone-aware"):
+        audited_gateway.execute("fixture.echo", {"message": "hello"})
+
+
+def test_error_summary_is_truncated_to_240_characters(tmp_path: Path) -> None:
+    from tool_gateway import AuditedToolGateway, ToolDefinition, ToolGateway, ToolRegistry
+    from trace_ids import IdFactory
+    from trace_store import TraceStore
+
+    def fail(_payload: Mapping[str, Any]) -> Mapping[str, Any]:
+        raise RuntimeError("x" * 400)
+
+    factory = IdFactory(clock=lambda: FIXED_NOW, token_hex=CountingTokenHex())
+    parent_context = factory.new_trace_context()
+    audited_gateway = AuditedToolGateway(
+        gateway=ToolGateway(
+            registry=ToolRegistry.from_definitions(
+                (
+                    ToolDefinition(
+                        name="fixture.long_error",
+                        input_schema={"type": "object"},
+                        output_schema={"type": "object"},
+                        handler=fail,
+                    ),
+                )
+            ),
+            allowlist=frozenset({"fixture.long_error"}),
+        ),
+        trace_store=TraceStore.open(tmp_path / "trace"),
+        parent_context=parent_context,
+        id_factory=factory,
+        clock=lambda: FIXED_NOW,
+    )
+
+    with pytest.raises(RuntimeError):
+        audited_gateway.execute("fixture.long_error", {})
+
+    (record,) = audited_gateway.trace_store.find_by_trace_id(parent_context.trace_id)
+    assert record.error_summary is not None
+    assert len(record.error_summary) == 240
+    assert record.error_summary.endswith("...")

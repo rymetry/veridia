@@ -103,7 +103,7 @@ class ExecutionEvidence(ArtifactBase):
     )
     environment: Environment = Field(
         ...,
-        description='実行環境metadata。環境ごとに必要な追加metadataが異なるため開いておく',
+        description='実行環境metadata。環境ごとに必要な追加metadataが異なるため開いておく。seed / clockはsandbox runnerでは保存するが、外部実行環境や既存evidence取込では同等値が無い場合があるためoptionalにする',
     )
     inputs: dict[str, Any] = Field(
         ...,

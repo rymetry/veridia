@@ -3,18 +3,17 @@
 from __future__ import annotations
 
 import json
-import re
 from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
+from json_schema_errors import error_key, issue_from_error
 from jsonschema.exceptions import ValidationError
 
 from artifact_validator.errors import ArtifactValidationError, ArtifactValidationIssue
 from artifact_validator.schema_store import artifact_type_to_schema, validator_for_artifact_type
 
 ARTIFACT_TYPE_FIELD = "artifact_type"
-REQUIRED_MESSAGE_RE = re.compile(r"^'(?P<field>[^']+)' is a required property$")
 
 
 def validate_artifact(artifact: Mapping[str, Any]) -> None:
@@ -30,7 +29,8 @@ def validate_artifact(artifact: Mapping[str, Any]) -> None:
 
     validator = validator_for_artifact_type(artifact_type)
     issues = tuple(
-        _issue_from_error(error) for error in _relevant_errors(validator.iter_errors(artifact))
+        _artifact_issue_from_error(error)
+        for error in _relevant_errors(validator.iter_errors(artifact))
     )
     if issues:
         raise ArtifactValidationError(issues)
@@ -47,13 +47,7 @@ def validate_artifact_file(path: str | Path) -> None:
         raise ValueError(f"failed to parse artifact file {artifact_path}: {exc}") from exc
 
     if not isinstance(artifact, Mapping):
-        issue = ArtifactValidationIssue(
-            field_path="$",
-            message="artifact JSON must be an object",
-            schema_path="$",
-            validator="type",
-        )
-        raise ArtifactValidationError((issue,))
+        raise ValueError(f"artifact JSON must be an object: {artifact_path}")
     validate_artifact(artifact)
 
 
@@ -84,12 +78,13 @@ def _artifact_type_issue(artifact_type: Any) -> ArtifactValidationIssue | None:
     return None
 
 
-def _issue_from_error(error: ValidationError) -> ArtifactValidationIssue:
+def _artifact_issue_from_error(error: ValidationError) -> ArtifactValidationIssue:
+    issue = issue_from_error(error)
     return ArtifactValidationIssue(
-        field_path=_field_path_for_error(error),
-        message=error.message,
-        schema_path=_path_to_jsonpath(error.schema_path),
-        validator=str(error.validator),
+        field_path=issue.field_path,
+        message=issue.message,
+        schema_path=issue.schema_path,
+        validator=issue.validator,
     )
 
 
@@ -99,36 +94,5 @@ def _relevant_errors(errors: Any) -> tuple[ValidationError, ...]:
         error for error in all_errors if error.validator != "unevaluatedProperties"
     )
     if specific_errors:
-        return tuple(sorted(specific_errors, key=_error_key))
-    return tuple(sorted(all_errors, key=_error_key))
-
-
-def _error_key(error: ValidationError) -> tuple[str, str, str]:
-    return (_field_path_for_error(error), _path_to_jsonpath(error.schema_path), error.message)
-
-
-def _field_path_for_error(error: ValidationError) -> str:
-    if error.validator == "required":
-        missing_field = _missing_required_field(error.message)
-        if missing_field is not None:
-            return _path_to_jsonpath([*error.path, missing_field])
-    return _path_to_jsonpath(error.path)
-
-
-def _missing_required_field(message: str) -> str | None:
-    match = REQUIRED_MESSAGE_RE.match(message)
-    if match is None:
-        return None
-    return match.group("field")
-
-
-def _path_to_jsonpath(path: Any) -> str:
-    rendered = "$"
-    for segment in path:
-        if isinstance(segment, int):
-            rendered += f"[{segment}]"
-        elif isinstance(segment, str) and segment.isidentifier():
-            rendered += f".{segment}"
-        else:
-            rendered += f"[{segment!r}]"
-    return rendered
+        return tuple(sorted(specific_errors, key=error_key))
+    return tuple(sorted(all_errors, key=error_key))

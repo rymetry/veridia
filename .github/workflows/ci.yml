@@ -37,12 +37,16 @@ jobs:
         run: uv run ruff format --check .
 
       - name: test
-        run: uv run pytest
+        run: uv run pytest --cov --cov-fail-under=80
 
       - name: タスク_index差分検証(statusの正本=frontmatterとの一致)
         # 生成日はコミット済み_index.mdのものを渡す(既定の実行日だと日付だけで不一致になる)
         run: |
           gen_date=$(sed -n 's/^生成日: \([0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\).*/\1/p' docs/tasks/phase-0/_index.md)
+          if [ -z "$gen_date" ]; then
+            echo "failed to extract generated date from docs/tasks/phase-0/_index.md" >&2
+            exit 1
+          fi
           uv run python scripts/regen_task_index.py docs/tasks/phase-0 --check --generated-on "$gen_date"
 
       - name: 生成Pydanticモデル差分検証(正本=schemas/との一致)

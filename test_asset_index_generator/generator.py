@@ -14,6 +14,7 @@ DEFAULT_GENERATED_AT = "1970-01-01T00:00:00Z"
 DEFAULT_BRANCH = "unknown"
 DEFAULT_CONFIDENCE = 0.6
 HASH_LENGTH = 12
+TRACE_HASH_LENGTH = 16
 
 
 def generate_test_asset_index(
@@ -43,7 +44,7 @@ def generate_test_asset_index(
         "confidence": DEFAULT_CONFIDENCE,
         "status": "draft",
         "requires_human_review": True,
-        "trace_id": f"trace-test-asset-index-{fingerprint.lower()}",
+        "trace_id": _trace_id(timestamp, fingerprint),
         "created_at": timestamp,
         "index_id": f"TAI-{fingerprint}",
         "indexed_at": timestamp,
@@ -94,3 +95,17 @@ def _fingerprint(
 
 def _stable_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:HASH_LENGTH].upper()
+
+
+def _trace_id(generated_at: str, fingerprint: str) -> str:
+    date_part = _trace_date_part(generated_at)
+    stable_hex = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:TRACE_HASH_LENGTH]
+    return f"trace-{date_part}-{stable_hex}"
+
+
+def _trace_date_part(generated_at: str) -> str:
+    date_text = generated_at[:10]
+    compact = date_text.replace("-", "")
+    if len(compact) != 8 or not compact.isdigit():
+        raise ValueError(f"generated_at must start with YYYY-MM-DD: {generated_at!r}")
+    return compact

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://veridia.dev/schemas/release-readiness-report.schema.json",
-  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)。§6.18の単数evidence_refは§17.3の理由別evidence_refs運用と合わせ、Phase 0では複数形evidence_refsへ正規化",
   "title": "ReleaseReadinessReport",
   "description": "release候補のreadiness report artifact(North Star §6.18)。ArtifactBaseを allOf で継承する。domain必須は report_id / release_candidate / decision_recommendation / blocking_reasons / warning_reasons / evidence_refs。pass/warn/blockの判定、理由、evidence_refsをT-007の契約として必須化する一方、readiness_scoreやsummary類はPhase 0にproducerが無いためoptionalにする。blocking_reasons / warning_reasons / evidence_refs は空配列を許し、pass判定や未収集draftでrefの捏造を要求しない。source_refsの根拠必須はArtifactBaseで強制する。末端の具象schemaのため unevaluatedProperties: false で閉じる。summary objectは運用metric追加を想定して additionalProperties: true を明示する。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
   "type": "object",

@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-import re
 from collections.abc import Mapping
 from typing import Any
 
+from json_schema_errors import error_key, issue_from_error
 from jsonschema import Draft202012Validator
-from jsonschema.exceptions import ValidationError
 
 from tool_gateway.errors import (
     ToolSchemaValidationError,
     ToolSchemaValidationIssue,
     ValidationDirection,
 )
-
-REQUIRED_MESSAGE_RE = re.compile(r"^'(?P<field>[^']+)' is a required property$")
 
 
 def validate_tool_payload(
@@ -28,7 +25,8 @@ def validate_tool_payload(
     """Validate a tool input or output payload against JSON Schema."""
     validator = Draft202012Validator(dict(schema))
     issues = tuple(
-        _issue_from_error(error) for error in sorted(validator.iter_errors(payload), key=_error_key)
+        _tool_issue_from_error(error)
+        for error in sorted(validator.iter_errors(payload), key=error_key)
     )
     if issues:
         raise ToolSchemaValidationError(
@@ -38,41 +36,11 @@ def validate_tool_payload(
         )
 
 
-def _issue_from_error(error: ValidationError) -> ToolSchemaValidationIssue:
+def _tool_issue_from_error(error: Any) -> ToolSchemaValidationIssue:
+    issue = issue_from_error(error)
     return ToolSchemaValidationIssue(
-        field_path=_field_path_for_error(error),
-        message=error.message,
-        schema_path=_path_to_jsonpath(error.schema_path),
-        validator=str(error.validator),
+        field_path=issue.field_path,
+        message=issue.message,
+        schema_path=issue.schema_path,
+        validator=issue.validator,
     )
-
-
-def _error_key(error: ValidationError) -> tuple[str, str, str]:
-    return (_field_path_for_error(error), _path_to_jsonpath(error.schema_path), error.message)
-
-
-def _field_path_for_error(error: ValidationError) -> str:
-    if error.validator == "required":
-        missing_field = _missing_required_field(error.message)
-        if missing_field is not None:
-            return _path_to_jsonpath([*error.path, missing_field])
-    return _path_to_jsonpath(error.path)
-
-
-def _missing_required_field(message: str) -> str | None:
-    match = REQUIRED_MESSAGE_RE.match(message)
-    if match is None:
-        return None
-    return match.group("field")
-
-
-def _path_to_jsonpath(path: Any) -> str:
-    rendered = "$"
-    for segment in path:
-        if isinstance(segment, int):
-            rendered += f"[{segment}]"
-        elif isinstance(segment, str) and segment.isidentifier():
-            rendered += f".{segment}"
-        else:
-            rendered += f"[{segment!r}]"
-    return rendered

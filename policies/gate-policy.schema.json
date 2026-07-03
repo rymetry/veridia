@@ -120,14 +120,83 @@
             "ratio",
             "sample_rate",
             "score",
-            "status",
             "trend"
           ]
         },
         "source_ref": { "$ref": "#/$defs/nonEmptyString" }
       },
       "required": ["metric", "operator", "value", "unit", "source_ref"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": { "properties": { "unit": { "const": "boolean" } }, "required": ["unit"] },
+          "then": {
+            "properties": {
+              "operator": { "const": "equals" },
+              "value": { "type": "boolean" }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "unit": { "const": "currency_budget" } },
+            "required": ["unit"]
+          },
+          "$comment": "currency_budgetは通貨額そのものではなく、Phase 0の pr_llm_test_cost_within_budget のような予算内フラグを表すためboolean + equalsを要求する",
+          "then": {
+            "properties": {
+              "operator": { "const": "equals" },
+              "value": { "type": "boolean" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "unit": { "const": "count" } }, "required": ["unit"] },
+          "then": {
+            "properties": {
+              "operator": {
+                "enum": [
+                  "equals",
+                  "greater_than",
+                  "greater_than_or_equal",
+                  "less_than",
+                  "less_than_or_equal"
+                ]
+              },
+              "value": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": { "unit": { "enum": ["ratio", "sample_rate", "score"] } },
+            "required": ["unit"]
+          },
+          "then": {
+            "properties": {
+              "operator": {
+                "enum": [
+                  "equals",
+                  "greater_than",
+                  "greater_than_or_equal",
+                  "less_than",
+                  "less_than_or_equal"
+                ]
+              },
+              "value": { "type": "number", "minimum": 0, "maximum": 1 }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "unit": { "const": "trend" } }, "required": ["unit"] },
+          "then": {
+            "properties": {
+              "operator": { "const": "equals" },
+              "value": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      ]
     },
     "nonEmptyString": {
       "type": "string",

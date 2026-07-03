@@ -6,11 +6,13 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
 from sandbox_runner import (
     CommandSpec,
     SandboxRunner,
     SandboxRunRequest,
 )
+from sandbox_runner.errors import SandboxRunnerError
 
 FIXED_NOW = "2026-07-03T12:34:56.789012Z"
 TEST_ASSET_ID = "TEST-T020-DETERMINISTIC-SAMPLE"
@@ -118,6 +120,28 @@ def test_runner_executes_sample_test_and_saves_execution_evidence(tmp_path: Path
     }
 
 
+def test_runner_saves_readable_reproduction_bundle(tmp_path: Path) -> None:
+    from evidence_store import EvidenceStore
+
+    runner = SandboxRunner()
+    request = make_request(tmp_path, "sandbox")
+
+    result = runner.run(request)
+
+    store = EvidenceStore.open(tmp_path / "evidence")
+    stored = store.get_by_artifact_id(result.artifact["artifact_id"])
+    ref = stored.payload["reproduction_bundle"]
+    bundle = json.loads(store.blob_store.get(ref).decode("utf-8"))
+
+    assert ref == f"object-storage://evidence/{stored.metadata.run_id}/reproduction-bundle.json"
+    assert bundle["seed"]["id"] == request.seed_id
+    assert bundle["command"]["argv"] == list(request.command.argv)
+    assert bundle["command"]["allowed_executables"] == list(request.command.allowed_executables)
+    assert bundle["fixed_now"] == FIXED_NOW
+    assert bundle["state_before"]["hash"] == result.artifact["state_before"]["hash"]
+    assert bundle["state_before"]["hash_version"] == "sandbox-state-hash-v2"
+
+
 def test_same_sample_test_run_twice_has_same_result_and_state_diff(tmp_path: Path) -> None:
     runner = SandboxRunner()
 
@@ -151,3 +175,75 @@ def test_each_run_has_ids_and_can_be_read_from_evidence_store(tmp_path: Path) ->
     )
     assert by_artifact_id.test_result["verdict"] == "pass"
     assert by_artifact_id.state_diff == first.state_diff
+
+
+def test_rejects_bare_command_name_before_sandbox_setup(tmp_path: Path) -> None:
+    request = make_request(tmp_path, "sandbox")
+    request = SandboxRunRequest(
+        **{
+            **request.__dict__,
+            "command": CommandSpec(
+                argv=("python", "workspace/sample_test.py"),
+                allowed_executables=("python",),
+            ),
+        }
+    )
+
+    with pytest.raises(SandboxRunnerError, match="absolute path"):
+        SandboxRunner().run(request)
+
+    assert not request.sandbox_root.exists()
+
+
+def test_rejects_allowlist_mismatch_before_sandbox_setup(tmp_path: Path) -> None:
+    request = make_request(tmp_path, "sandbox")
+    request = SandboxRunRequest(
+        **{
+            **request.__dict__,
+            "command": CommandSpec(
+                argv=(sys.executable, "workspace/sample_test.py"),
+                allowed_executables=("/usr/bin/false",),
+            ),
+        }
+    )
+
+    with pytest.raises(SandboxRunnerError, match="allowlisted"):
+        SandboxRunner().run(request)
+
+    assert not request.sandbox_root.exists()
+
+
+def test_rejects_empty_argv_before_sandbox_setup(tmp_path: Path) -> None:
+    request = make_request(tmp_path, "sandbox")
+    request = SandboxRunRequest(
+        **{**request.__dict__, "command": CommandSpec(argv=(), allowed_executables=())}
+    )
+
+    with pytest.raises(SandboxRunnerError, match="argv"):
+        SandboxRunner().run(request)
+
+    assert not request.sandbox_root.exists()
+
+
+def test_timeout_saves_valid_execution_evidence_with_timeout_tool_status(
+    tmp_path: Path,
+) -> None:
+    request = make_request(tmp_path, "sandbox")
+    request = SandboxRunRequest(
+        **{
+            **request.__dict__,
+            "command": CommandSpec(
+                argv=(sys.executable, "-c", "import time; time.sleep(1)"),
+                allowed_executables=(sys.executable,),
+                timeout_seconds=0.05,
+            ),
+        }
+    )
+
+    result = SandboxRunner().run(request)
+
+    assert result.test_result["exit_code"] == 124
+    assert result.verdict == "fail"
+    assert result.artifact["tool_calls"][0]["status"] == "timeout"
+    assert "timeout after 0.05s" in result.test_result["stderr"]
+    assert result.stored_evidence.payload["tool_calls"][0]["status"] == "timeout"

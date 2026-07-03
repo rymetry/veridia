@@ -82,7 +82,13 @@ def _reset(args: argparse.Namespace) -> int:
 
 
 def _state_hash(args: argparse.Namespace) -> int:
-    print(state_hash(args.root))
+    try:
+        digest = state_hash(args.root)
+    except OSError as exc:
+        raise SandboxEnvError(
+            f"failed to calculate sandbox state hash for {args.root}: {exc}"
+        ) from exc
+    print(digest)
     return EXIT_OK
 
 

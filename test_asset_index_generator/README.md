@@ -27,5 +27,6 @@ Requirement / Risk / Oracleとの紐付け、flake履歴、最終成功・失敗
 ## 決定性
 
 デフォルトの `created_at` / `indexed_at` は `1970-01-01T00:00:00Z` に固定する。
-実運用の生成時刻を記録したい場合は `--generated-at` で明示する。IDはrepo名、branch、
-生成時刻、検出したasset pathのsha256から生成する。
+実運用の生成時刻を記録したい場合は `--generated-at` で明示する。artifact IDはrepo名、branch、
+生成時刻、検出したasset pathのsha256から生成する。`trace_id` は `trace-YYYYMMDD-<16hex>` 形式で、
+date部は `generated_at` の日付、hex部は同じ入力fingerprintの安定hashから作る。

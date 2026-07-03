@@ -39,6 +39,12 @@ def test_empty_blocked_by_becomes_empty_tuple() -> None:
     assert entry.blocked_by == ()
 
 
+def test_scalar_blocked_by_raises() -> None:
+    text = _VALID.replace("blocked_by: [T-001, T-002]", "blocked_by: T-001")
+    with pytest.raises(TaskParseError, match="blocked_by"):
+        parse_task_file("T-042.md", "T-042-sample.md", text)
+
+
 def test_missing_fence_raises() -> None:
     with pytest.raises(TaskParseError, match="fence"):
         parse_task_file("bad.md", "bad.md", "no frontmatter here\n# T-001: x")

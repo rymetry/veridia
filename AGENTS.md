@@ -19,6 +19,17 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `models/` | `schemas/` からの生成Pydanticモデル。手編集禁止(`scripts/gen_models.py` で再生成) | 稼働中 |
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
+| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI | 稼働中 |
+| `evidence_store/` | ExecutionEvidenceのmetadata/blob保存adapter | 稼働中 |
+| `trace_store/` | redacted trace recordの保存adapter | 稼働中 |
+| `trace_ids/` | run_id / trace_id / span_id生成 | 稼働中 |
+| `tool_gateway/` | allowlist + schema検証付きtool実行境界 | 稼働中 |
+| `sandbox_env/` | Phase 0 process sandbox lifecycle / seed / clock | 稼働中 |
+| `sandbox_runner/` | sandbox実行とExecutionEvidence保存 | 稼働中 |
+| `test_asset_index_generator/` | TestAssetIndex候補生成CLI | 稼働中 |
+| `change_impact_generator/` | ChangeImpactSpec候補生成CLI | 稼働中 |
+| `scripts/` | 生成・整合性チェック用repo-local tooling | 稼働中 |
+| `tests/` | pytestによるcontract / regression test | 稼働中 |
 | `.claude/` | このリポジトリでの開発用エージェント設定 | - |
 
 **注意(名前空間):** `qa-skills/` はQAプラットフォームが実行時に使うskill package(§7.1)。`.claude/skills/`(このリポジトリを開発するエージェント自身の拡張)とは別物(ADR-0001参照。§7.1の `skills/` から改名した逸脱の記録あり)。

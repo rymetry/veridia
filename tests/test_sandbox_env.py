@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from sandbox_env import create, destroy, reset, state_hash
 from sandbox_env.cli import main
+from sandbox_env.errors import SandboxEnvError
 
 
 def test_create_destroy_and_recreate(tmp_path: Path) -> None:
@@ -67,3 +69,31 @@ def test_cli_create_hash_reset_and_destroy(tmp_path: Path, capsys) -> None:
 
     assert main(["destroy", str(sandbox_root)]) == 0
     assert not sandbox_root.exists()
+
+
+def test_destroy_rejects_dangling_symlink_root(tmp_path: Path) -> None:
+    sandbox_root = tmp_path / "sandbox-link"
+    sandbox_root.symlink_to(tmp_path / "missing-target", target_is_directory=True)
+
+    with pytest.raises(SandboxEnvError, match="non-directory"):
+        destroy(sandbox_root)
+
+    assert sandbox_root.is_symlink()
+
+
+def test_cli_state_hash_wraps_os_errors_with_context(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import sandbox_env.cli as cli
+
+    def raise_permission_error(_root: Path) -> str:
+        raise PermissionError("denied")
+
+    monkeypatch.setattr(cli, "state_hash", raise_permission_error)
+
+    assert main(["state-hash", str(tmp_path)]) == 2
+    captured = capsys.readouterr()
+    assert "failed to calculate sandbox state hash" in captured.err
+    assert "denied" in captured.err

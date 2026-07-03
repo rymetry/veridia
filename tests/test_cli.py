@@ -51,6 +51,15 @@ def test_generate_sorts_by_task_id_and_counts_epics(tmp_path: Path) -> None:
     assert "| sandbox(WS-D) | 1 |" in text
 
 
+def test_generate_sorts_task_ids_numerically(tmp_path: Path) -> None:
+    _write_task(tmp_path, "T-999", "artifact-schema", "not_started", "near")
+    _write_task(tmp_path, "T-1000", "artifact-schema", "not_started", "far")
+
+    text = generate_index_text(tmp_path, "2026-07-02")
+
+    assert text.index("T-999") < text.index("T-1000")
+
+
 def test_check_mode_detects_match_and_drift(tmp_path: Path) -> None:
     _seed(tmp_path)
     (tmp_path / "_index.md").write_text(
@@ -60,6 +69,18 @@ def test_check_mode_detects_match_and_drift(tmp_path: Path) -> None:
     # タスクを1件書き換えるとdrift。
     _write_task(tmp_path, "T-003", "sandbox", "done", "gamma")
     assert main([str(tmp_path), "--check", "--generated-on", "2026-07-02"]) == 1
+
+
+def test_write_mode_updates_index_file(tmp_path: Path) -> None:
+    _seed(tmp_path)
+
+    assert main([str(tmp_path), "--generated-on", "2026-07-02"]) == 0
+
+    index_path = tmp_path / "_index.md"
+    assert index_path.read_text(encoding="utf-8") == generate_index_text(
+        tmp_path,
+        "2026-07-02",
+    )
 
 
 def test_missing_dir_returns_error_code(tmp_path: Path) -> None:

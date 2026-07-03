@@ -162,7 +162,7 @@ class QualityAnalyticsSnapshot(ArtifactBase):
     )
     evidence: Evidence = Field(
         ...,
-        description='evidence集約bucket。source_refsとは別に集計元runやEvidence Store参照を保持する',
+        description='evidence集約bucket。source_refsとは別に集計元runやEvidence Store参照を保持する。§6.17からのPhase 0構造逸脱であり、理由はdocs/knowledge/learning-log.md 2026-07-03 entryに記録',
     )
     cost: Cost = Field(
         ..., description='cost集約bucket。未収集metricは省略またはnullで表す'

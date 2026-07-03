@@ -1,6 +1,7 @@
 # GatePolicy v0.1.0
 # North Star §17.0-§17.3 に基づく Phase 0 最小版。
 # §17.2 の閾値はいずれも較正前の出発点であり、恒久的なprocess固定の根拠にしない。
+# §17.3のrisk acceptance gateは承認workflow未実装のためPhase 0スコープ外。
 policy_version: "0.1.0"
 schema_version: "0.1.0"
 north_star_refs:

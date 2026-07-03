@@ -29,6 +29,7 @@ stored = store.save_execution_evidence(
     artifact,
     test_result={"summary": {"passed": 3, "failed": 0}},
     state_diff={"tables": [{"name": "orders", "rows_changed": 1}]},
+    reproduction_bundle={"argv": ["pytest"], "seed": {"id": "fixture-v1"}},
     logs={"test-runner.log": b"3 passed\n"},
 )
 same = store.get_by_artifact_id(stored.metadata.artifact_id)
@@ -45,6 +46,11 @@ by_trace = store.find_by_trace_id(stored.metadata.trace_id)
 - blob adapter interface: `put(run_id, object_name, data)` / `get(logical_ref)` / `list(run_id)`
 
 metadataには `artifact_id` / `trace_id` / `run_id` / `test_asset_id` / `verdict` / `created_at` / `schema_version` / `payload_ref` / `state_diff_ref` / `log_refs` を保存する。読み出しAPIは `artifact_id`、`trace_id`、`run_id`、`test_asset_id` の検索を提供する。
+
+`save_execution_evidence(..., reproduction_bundle=...)` を渡すと
+`object-storage://evidence/<run_id>/reproduction-bundle.json` へ保存し、ExecutionEvidenceの
+`reproduction_bundle` refもそのblobを指す。blobはlogical keyごとにimmutableで、既存objectへの
+黙示的上書きは `EvidenceStoreError` として拒否する。
 
 SQLite実装はADR-0003のPhase 0 adapterであり、DDL / DMLはSQLite固有の `AUTOINCREMENT`、SQLite関数、SQLite固有のconflict構文に依存しない。local absolute pathはmetadataに保存せず、blobはlogical ref経由で読む。
 

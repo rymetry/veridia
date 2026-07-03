@@ -86,6 +86,10 @@ class TestGatePolicySchemaItself:
     def test_schema_declares_draft_2020_12(self) -> None:
         assert load_schema()["$schema"] == "https://json-schema.org/draft/2020-12/schema"
 
+    def test_threshold_unit_enum_does_not_include_unused_status_unit(self) -> None:
+        unit_enum = load_schema()["$defs"]["threshold"]["properties"]["unit"]["enum"]
+        assert "status" not in unit_enum
+
 
 class TestGatePolicy:
     def test_gate_policy_yaml_passes_schema(self, validator: Draft202012Validator) -> None:
@@ -101,6 +105,7 @@ class TestGatePolicy:
     def test_policy_defines_every_section_17_1_gate_once(self) -> None:
         policy_gate_ids = set(load_policy()["gates"])
 
+        assert policy_gate_ids
         assert policy_gate_ids == SECTION_17_1_GATE_IDS
 
     def test_each_section_17_1_gate_has_stage_and_thresholds(self) -> None:
@@ -165,6 +170,31 @@ class TestGatePolicy:
         for key in missing_path[:-1]:
             target = target[key]
         del target[missing_path[-1]]
+
+        with pytest.raises(ValidationError):
+            validator.validate(policy)
+
+    @pytest.mark.parametrize(
+        ("unit", "operator", "value"),
+        [
+            ("boolean", "greater_than", True),
+            ("count", "equals", "0"),
+            ("ratio", "equals", True),
+            ("trend", "less_than", "monthly_increase"),
+        ],
+    )
+    def test_threshold_unit_operator_value_mismatch_fails(
+        self,
+        validator: Draft202012Validator,
+        unit: str,
+        operator: str,
+        value: Any,
+    ) -> None:
+        policy = copy.deepcopy(load_policy())
+        threshold = policy["gates"]["source_grounding"]["thresholds"][0]
+        threshold["unit"] = unit
+        threshold["operator"] = operator
+        threshold["value"] = value
 
         with pytest.raises(ValidationError):
             validator.validate(policy)

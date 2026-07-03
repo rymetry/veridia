@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pytest
 
+import task_index.render as render
 from task_index.epic_labels import EpicLabel
 from task_index.models import TaskEntry
 from task_index.render import render_index
@@ -51,3 +52,23 @@ def test_unknown_epic_raises() -> None:
     entries = (_entry("T-001", "done", epic="mystery-epic"),)
     with pytest.raises(ValueError, match="定義の無いepic"):
         render_index(entries, _LABELS, "2026-07-02")
+
+
+@pytest.mark.parametrize(
+    ("directory_name", "expected"),
+    [
+        ("phase-0", "Phase 0"),
+        ("phase-1-crud-mvp", "Phase 1 CRUD MVP"),
+    ],
+)
+def test_phase_title_is_derived_from_task_directory_name(
+    directory_name: str,
+    expected: str,
+) -> None:
+    assert hasattr(render, "phase_title")
+    assert render.phase_title(directory_name) == expected
+
+
+def test_phase_zero_default_title_preserves_existing_output() -> None:
+    text = render_index((_entry("T-001", "done"),), _LABELS, "2026-07-02")
+    assert text.startswith("# Phase 0 タスク一覧(集約ビュー)\n")

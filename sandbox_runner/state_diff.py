@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from sandbox_env.errors import SandboxEnvError
+from sandbox_env.hashing import iter_normalized_entries
 
 from sandbox_runner.errors import SandboxRunnerError
 
@@ -36,11 +38,18 @@ def snapshot(root: Path | str) -> dict[str, StateEntry]:
         raise SandboxRunnerError(f"sandbox root does not exist: {sandbox_root}")
 
     entries: dict[str, StateEntry] = {}
-    for path in sorted(
-        sandbox_root.rglob("*"), key=lambda item: item.relative_to(sandbox_root).as_posix()
-    ):
-        relative_path = path.relative_to(sandbox_root).as_posix()
-        entries[relative_path] = _entry_for(path, relative_path)
+    try:
+        normalized_entries = iter_normalized_entries(sandbox_root)
+    except SandboxEnvError as exc:
+        raise SandboxRunnerError(str(exc)) from exc
+
+    for entry in normalized_entries:
+        entries[entry.path] = StateEntry(
+            path=entry.path,
+            type=entry.type,
+            sha256=entry.sha256,
+            target=entry.target,
+        )
     return entries
 
 
@@ -68,21 +77,3 @@ def diff(before: dict[str, StateEntry], after: dict[str, StateEntry]) -> dict[st
             "deleted": len(deleted_paths),
         },
     }
-
-
-def _entry_for(path: Path, relative_path: str) -> StateEntry:
-    if path.is_symlink():
-        return StateEntry(path=relative_path, type="symlink", target=path.readlink().as_posix())
-    if path.is_file():
-        return StateEntry(path=relative_path, type="file", sha256=_sha256(path))
-    if path.is_dir():
-        return StateEntry(path=relative_path, type="dir")
-    raise SandboxRunnerError(f"unsupported filesystem entry in sandbox state: {path}")
-
-
-def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()

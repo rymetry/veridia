@@ -42,6 +42,7 @@ class TestModuleNameFor:
 class TestCollectSchemaFiles:
     def test_finds_schema_files_in_repo(self) -> None:
         names = [p.name for p in collect_schema_files(SCHEMAS_DIR)]
+        assert names
         assert "artifact-base.schema.json" in names
 
     def test_ignores_non_schema_files(self) -> None:

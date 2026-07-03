@@ -14,6 +14,7 @@ DEFAULT_GENERATED_AT = "1970-01-01T00:00:00Z"
 DEFAULT_CONFIDENCE = 0.4
 DEFAULT_SOURCE_REF = "diff://stdin"
 HASH_LENGTH = 12
+TRACE_HASH_LENGTH = 16
 HIGH_RISK_ROOTS = frozenset({"policies", "schemas", "artifact_validator", "models"})
 MEDIUM_RISK_ROOTS = frozenset({"src", "qa-skills", "test_asset_index_generator"})
 LOW_RISK_ROOTS = frozenset({"docs", "tests"})
@@ -43,7 +44,7 @@ def generate_change_impact_spec(
         "confidence": DEFAULT_CONFIDENCE,
         "status": "draft",
         "requires_human_review": True,
-        "trace_id": f"trace-change-impact-{fingerprint.lower()}",
+        "trace_id": _trace_id(timestamp, fingerprint),
         "created_at": timestamp,
         "change_impact_id": f"CIS-{fingerprint}",
         "changed_files": [_changed_file_to_dict(file) for file in changed_files],
@@ -113,3 +114,17 @@ def _fingerprint(source_ref: str, generated_at: str, changed_files: tuple[Change
 
 def _stable_hash(value: str) -> str:
     return hashlib.sha256(value.encode("utf-8")).hexdigest()[:HASH_LENGTH].upper()
+
+
+def _trace_id(generated_at: str, fingerprint: str) -> str:
+    date_part = _trace_date_part(generated_at)
+    stable_hex = hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()[:TRACE_HASH_LENGTH]
+    return f"trace-{date_part}-{stable_hex}"
+
+
+def _trace_date_part(generated_at: str) -> str:
+    date_text = generated_at[:10]
+    compact = date_text.replace("-", "")
+    if len(compact) != 8 or not compact.isdigit():
+        raise ValueError(f"generated_at must start with YYYY-MM-DD: {generated_at!r}")
+    return compact

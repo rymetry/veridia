@@ -16,6 +16,7 @@ from evidence_store.metadata import EvidenceMetadata, SqliteEvidenceMetadataRepo
 
 DEFAULT_ROOT = Path(".veridia/store/evidence")
 PAYLOAD_OBJECT_NAME = "execution-evidence.json"
+REPRODUCTION_BUNDLE_OBJECT_NAME = "reproduction-bundle.json"
 TEST_RESULT_OBJECT_NAME = "test-result.json"
 STATE_DIFF_OBJECT_NAME = "state-diff.json"
 
@@ -53,6 +54,7 @@ class EvidenceStore:
         test_result: Any,
         state_diff: Any,
         logs: Mapping[str, bytes] | None = None,
+        reproduction_bundle: Any | None = None,
     ) -> StoredEvidence:
         """Validate, persist blobs, save metadata, and return the stored evidence."""
         payload = dict(artifact)
@@ -69,12 +71,20 @@ class EvidenceStore:
             STATE_DIFF_OBJECT_NAME,
             _json_bytes(state_diff),
         )
+        reproduction_bundle_ref = None
+        if reproduction_bundle is not None:
+            reproduction_bundle_ref = self.blob_store.put(
+                run_id,
+                REPRODUCTION_BUNDLE_OBJECT_NAME,
+                _json_bytes(reproduction_bundle),
+            )
         log_refs_by_name = self._put_logs(run_id, logs or {})
 
         payload = _payload_with_refs(
             payload,
             test_result_ref=test_result_ref,
             state_diff_ref=state_diff_ref,
+            reproduction_bundle_ref=reproduction_bundle_ref,
             log_refs_by_name=log_refs_by_name,
         )
         validate_artifact(payload)
@@ -154,11 +164,14 @@ def _payload_with_refs(
     *,
     test_result_ref: str,
     state_diff_ref: str,
+    reproduction_bundle_ref: str | None,
     log_refs_by_name: Mapping[str, str],
 ) -> dict[str, Any]:
     updated = dict(payload)
     updated["outputs"] = {**_mapping_value(payload, "outputs"), "test_result_ref": test_result_ref}
     updated["state_diff"] = {**_mapping_value(payload, "state_diff"), "ref": state_diff_ref}
+    if reproduction_bundle_ref is not None:
+        updated["reproduction_bundle"] = reproduction_bundle_ref
     if log_refs_by_name:
         updated["logs"] = [{"ref": ref, "kind": "test_runner"} for ref in log_refs_by_name.values()]
     return updated

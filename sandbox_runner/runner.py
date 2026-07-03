@@ -9,6 +9,7 @@ from typing import Any
 from evidence_store import EvidenceStore
 from sandbox_env import apply_seed, create, reset, state_hash
 from sandbox_env.clock import FIXED_NOW_ENV_VAR
+from sandbox_env.hashing import HASH_VERSION as SANDBOX_STATE_HASH_VERSION
 from trace_ids import IdFactory
 
 from sandbox_runner.errors import SandboxRunnerError
@@ -57,6 +58,11 @@ class SandboxRunner:
             artifact,
             test_result=test_result,
             state_diff=state_diff,
+            reproduction_bundle=_reproduction_bundle(
+                request,
+                before_hash=before_hash,
+                before_snapshot=before_snapshot,
+            ),
             logs={
                 "stdout.log": test_result["stdout"].encode("utf-8"),
                 "stderr.log": test_result["stderr"].encode("utf-8"),
@@ -88,6 +94,8 @@ def _validate_command(command: CommandSpec) -> None:
     if not command.argv:
         raise SandboxRunnerError("command argv must not be empty")
     executable = command.argv[0]
+    if not Path(executable).is_absolute():
+        raise SandboxRunnerError(f"command executable must be an absolute path: {executable}")
     if executable not in command.allowed_executables:
         raise SandboxRunnerError(f"command executable is not allowlisted: {executable}")
 
@@ -139,6 +147,40 @@ def _test_result(
     }
 
 
+def _tool_call_status(test_result: dict[str, Any]) -> str:
+    if test_result["exit_code"] == 124:
+        return "timeout"
+    if test_result["verdict"] == "pass":
+        return "success"
+    return "failure"
+
+
+def _reproduction_bundle(
+    request: SandboxRunRequest,
+    *,
+    before_hash: str,
+    before_snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    return {
+        "version": "sandbox-reproduction-bundle.v1",
+        "seed": {
+            "id": request.seed_id,
+            "path": str(request.seed_path),
+        },
+        "fixed_now": request.fixed_now,
+        "command": {
+            "argv": list(request.command.argv),
+            "allowed_executables": list(request.command.allowed_executables),
+            "timeout_seconds": request.command.timeout_seconds,
+        },
+        "state_before": {
+            "hash": before_hash,
+            "hash_version": SANDBOX_STATE_HASH_VERSION,
+            "entries": [entry.to_json() for entry in before_snapshot.values()],
+        },
+    }
+
+
 def _execution_evidence_artifact(
     request: SandboxRunRequest,
     *,
@@ -177,15 +219,15 @@ def _execution_evidence_artifact(
             "verdict": test_result["verdict"],
             "exit_code": test_result["exit_code"],
         },
-        "state_before": {"hash": before_hash, "hash_version": "sandbox-state-hash-v1"},
-        "state_after": {"hash": after_hash, "hash_version": "sandbox-state-hash-v1"},
+        "state_before": {"hash": before_hash, "hash_version": SANDBOX_STATE_HASH_VERSION},
+        "state_after": {"hash": after_hash, "hash_version": SANDBOX_STATE_HASH_VERSION},
         "state_diff": {
             "summary": state_diff["summary"],
         },
         "tool_calls": [
             {
                 "name": "sandbox_runner.command",
-                "status": "success" if test_result["verdict"] == "pass" else "failure",
+                "status": _tool_call_status(test_result),
                 "argv": list(request.command.argv),
             }
         ],

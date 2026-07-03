@@ -7,12 +7,22 @@ from typing import Any
 
 REDACTION_MASK = "<redacted>"
 SECRET_KEY_PARTS = (
+    "access_key",
     "api_key",
     "apikey",
     "auth",
     "authorization",
+    "bearer",
+    "cookie",
+    "cred",
+    "jwt",
     "password",
+    "passwd",
+    "private_key",
+    "pwd",
+    "refresh_token",
     "secret",
+    "session",
     "token",
 )
 

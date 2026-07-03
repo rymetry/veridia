@@ -12,7 +12,7 @@ from .epic_labels import EpicLabel
 from .models import VALID_STATUSES, TaskEntry
 
 # --- 固定文言(_index.md のテンプレート要素) ---
-_TITLE = "# Phase 0 タスク一覧(集約ビュー)"
+_TITLE_TEMPLATE = "# {phase_title} タスク一覧(集約ビュー)"
 _INTRO = (
     "frontmatterから再生成する集約ビュー。**手で編集しない**"
     "(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。"
@@ -27,6 +27,16 @@ _FOOTER = (
     "(計画mdの完了条件チェックリストが正、AGENTS.md変更ルール6)。"
 )
 _EMPTY_BLOCKED = "-"
+
+
+def phase_title(directory_name: str) -> str:
+    """Derive a human-readable phase title from a task directory name."""
+    parts = directory_name.split("-")
+    if len(parts) >= 2 and parts[0] == "phase" and parts[1].isdigit():
+        suffix = " ".join(part.upper() for part in parts[2:])
+        title = f"Phase {int(parts[1])}"
+        return f"{title} {suffix}" if suffix else title
+    return directory_name
 
 
 def _status_summary(entries: tuple[TaskEntry, ...]) -> str:
@@ -70,6 +80,7 @@ def render_index(
     entries: tuple[TaskEntry, ...],
     epic_labels: tuple[EpicLabel, ...],
     generated_on: str,
+    phase_dir_name: str = "phase-0",
 ) -> str:
     """_index.md の全文(末尾改行込み)を返す。
 
@@ -79,7 +90,7 @@ def render_index(
         generated_on: `生成日` に出す日付文字列(YYYY-MM-DD)。
     """
     lines: list[str] = [
-        _TITLE,
+        _TITLE_TEMPLATE.format(phase_title=phase_title(phase_dir_name)),
         "",
         _INTRO,
         "",

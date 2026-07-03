@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from string import hexdigits
 
 NULL_PATH = "/dev/null"
 DIFF_PREFIX = "diff --git "
@@ -14,6 +15,7 @@ OLD_PATH_PREFIX = "--- "
 NEW_PATH_PREFIX = "+++ "
 ADDED_LINE_PREFIX = "+"
 DELETED_LINE_PREFIX = "-"
+HUNK_PREFIX = "@@"
 
 
 @dataclass(frozen=True)
@@ -36,6 +38,7 @@ class _FileBuilder:
     lines_deleted: int = 0
     rename_from: str | None = None
     rename_to: str | None = None
+    in_hunk: bool = False
 
 
 def parse_unified_diff(diff_text: str) -> tuple[ChangedFile, ...]:
@@ -64,31 +67,45 @@ def parse_unified_diff(diff_text: str) -> tuple[ChangedFile, ...]:
 
 
 def _builder_from_diff_header(line: str) -> _FileBuilder:
-    parts = line.split()
-    if len(parts) < 4:
-        raise ValueError(f"malformed diff header: {line}")
-    return _FileBuilder(old_path=_strip_git_prefix(parts[2]), new_path=_strip_git_prefix(parts[3]))
+    paths = _split_diff_header_paths(line[len(DIFF_PREFIX) :])
+    return _FileBuilder(
+        old_path=_strip_git_prefix(_decode_git_path(paths[0])),
+        new_path=_strip_git_prefix(_decode_git_path(paths[1])),
+    )
 
 
 def _consume_file_line(builder: _FileBuilder, line: str) -> _FileBuilder:
+    if line.startswith(HUNK_PREFIX):
+        return replace(builder, in_hunk=True)
+    if builder.in_hunk:
+        if line.startswith(ADDED_LINE_PREFIX):
+            return replace(builder, lines_added=builder.lines_added + 1)
+        if line.startswith(DELETED_LINE_PREFIX):
+            return replace(builder, lines_deleted=builder.lines_deleted + 1)
+        return builder
+
     if line.startswith(NEW_FILE_PREFIX):
         return replace(builder, change_type="added")
     if line.startswith(DELETED_FILE_PREFIX):
         return replace(builder, change_type="deleted")
     if line.startswith(RENAME_FROM_PREFIX):
-        return replace(builder, change_type="renamed", rename_from=line[len(RENAME_FROM_PREFIX) :])
+        return replace(
+            builder,
+            change_type="renamed",
+            rename_from=_decode_git_path(line[len(RENAME_FROM_PREFIX) :]),
+        )
     if line.startswith(RENAME_TO_PREFIX):
-        return replace(builder, change_type="renamed", rename_to=line[len(RENAME_TO_PREFIX) :])
+        return replace(
+            builder,
+            change_type="renamed",
+            rename_to=_decode_git_path(line[len(RENAME_TO_PREFIX) :]),
+        )
     if line.startswith(OLD_PATH_PREFIX):
         old_path = line[len(OLD_PATH_PREFIX) :]
-        return replace(builder, old_path=_strip_git_prefix(old_path))
+        return replace(builder, old_path=_strip_git_prefix(_decode_git_path(old_path)))
     if line.startswith(NEW_PATH_PREFIX):
         new_path = line[len(NEW_PATH_PREFIX) :]
-        return replace(builder, new_path=_strip_git_prefix(new_path))
-    if _is_added_content_line(line):
-        return replace(builder, lines_added=builder.lines_added + 1)
-    if _is_deleted_content_line(line):
-        return replace(builder, lines_deleted=builder.lines_deleted + 1)
+        return replace(builder, new_path=_strip_git_prefix(_decode_git_path(new_path)))
     return builder
 
 
@@ -122,17 +139,116 @@ def _effective_path(builder: _FileBuilder) -> str:
     raise ValueError("diff file entry did not contain a usable path")
 
 
-def _is_added_content_line(line: str) -> bool:
-    return line.startswith(ADDED_LINE_PREFIX) and not line.startswith(NEW_PATH_PREFIX)
-
-
-def _is_deleted_content_line(line: str) -> bool:
-    return line.startswith(DELETED_LINE_PREFIX) and not line.startswith(OLD_PATH_PREFIX)
-
-
 def _strip_git_prefix(path: str) -> str:
     if path == NULL_PATH:
         return path
     if path.startswith("a/") or path.startswith("b/"):
         return path[2:]
     return path
+
+
+def _split_diff_header_paths(value: str) -> tuple[str, str]:
+    rest = value.strip()
+    if not rest:
+        raise ValueError(f"malformed diff header: missing paths: {value!r}")
+
+    first, remaining = _read_git_path_token(rest)
+    second, trailing = _read_git_path_token(remaining.lstrip())
+    if trailing.strip():
+        raise ValueError(f"malformed diff header path list: {value}")
+    return (first, second)
+
+
+def _read_git_path_token(value: str) -> tuple[str, str]:
+    if not value:
+        raise ValueError("malformed diff header: missing path")
+    if value.startswith('"'):
+        end_index = _quoted_token_end(value)
+        return value[:end_index], value[end_index:]
+
+    separator = " b/"
+    if value.startswith("a/") and separator in value:
+        index = value.rfind(separator)
+        return value[:index], value[index + 1 :]
+    if value.startswith("b/"):
+        return value, ""
+
+    parts = value.split(maxsplit=1)
+    if len(parts) == 1:
+        return parts[0], ""
+    return parts[0], parts[1]
+
+
+def _quoted_token_end(value: str) -> int:
+    escaped = False
+    for index, char in enumerate(value[1:], start=1):
+        if escaped:
+            escaped = False
+            continue
+        if char == "\\":
+            escaped = True
+            continue
+        if char == '"':
+            return index + 1
+    raise ValueError(f"unterminated quoted git path: {value}")
+
+
+def _decode_git_path(raw_path: str) -> str:
+    token = raw_path.strip()
+    if not token.startswith('"'):
+        return _path_without_timestamp(token)
+    if len(token) < 2 or not token.endswith('"'):
+        raise ValueError(f"malformed quoted git path: {raw_path}")
+    return _decode_c_quoted_path(token[1:-1])
+
+
+def _path_without_timestamp(path: str) -> str:
+    if "\t" in path:
+        return path.split("\t", 1)[0]
+    return path
+
+
+def _decode_c_quoted_path(value: str) -> str:
+    output = bytearray()
+    index = 0
+    while index < len(value):
+        char = value[index]
+        if char != "\\":
+            output.extend(char.encode("utf-8"))
+            index += 1
+            continue
+
+        if index + 1 >= len(value):
+            raise ValueError("invalid trailing escape in quoted git path")
+        next_char = value[index + 1]
+        if next_char in {'"', "\\"}:
+            output.extend(next_char.encode("utf-8"))
+            index += 2
+            continue
+        if next_char in "abfnrtv":
+            output.extend(
+                {
+                    "a": b"\a",
+                    "b": b"\b",
+                    "f": b"\f",
+                    "n": b"\n",
+                    "r": b"\r",
+                    "t": b"\t",
+                    "v": b"\v",
+                }[next_char]
+            )
+            index += 2
+            continue
+        if next_char in hexdigits and next_char not in "89ABCDEFabcdef":
+            octal = value[index + 1 : index + 4]
+            if len(octal) != 3 or any(char not in "01234567" for char in octal):
+                raise ValueError(f"invalid octal escape in quoted git path: \\{octal}")
+            output.append(int(octal, 8))
+            index += 4
+            continue
+        raise ValueError(f"unsupported escape in quoted git path: \\{next_char}")
+
+    try:
+        return output.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"quoted git path is not valid UTF-8: {exc}") from exc

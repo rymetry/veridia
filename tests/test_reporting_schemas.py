@@ -150,6 +150,24 @@ def make_release_readiness_report_instance() -> dict[str, Any]:
     }
 
 
+DOMAIN_REQUIRED_MISSING_CASES = [
+    pytest.param(schema_filename, make_instance, missing, id=f"{schema_filename}-{missing}")
+    for schema_filename, make_instance, domain_required in [
+        (
+            QUALITY_ANALYTICS_SNAPSHOT_SCHEMA,
+            make_quality_analytics_snapshot_instance,
+            QUALITY_ANALYTICS_SNAPSHOT_REQUIRED_FIELDS,
+        ),
+        (
+            RELEASE_READINESS_REPORT_SCHEMA,
+            make_release_readiness_report_instance,
+            RELEASE_READINESS_REPORT_REQUIRED_FIELDS,
+        ),
+    ]
+    for missing in sorted(domain_required)
+]
+
+
 @pytest.mark.parametrize(
     ("schema_filename", "artifact_type", "domain_required"),
     [
@@ -295,28 +313,16 @@ class TestArtifactBaseInheritance:
 
 
 @pytest.mark.parametrize(
-    ("schema_filename", "make_instance", "domain_required"),
-    [
-        (
-            QUALITY_ANALYTICS_SNAPSHOT_SCHEMA,
-            make_quality_analytics_snapshot_instance,
-            QUALITY_ANALYTICS_SNAPSHOT_REQUIRED_FIELDS,
-        ),
-        (
-            RELEASE_READINESS_REPORT_SCHEMA,
-            make_release_readiness_report_instance,
-            RELEASE_READINESS_REPORT_REQUIRED_FIELDS,
-        ),
-    ],
+    ("schema_filename", "make_instance", "missing"),
+    DOMAIN_REQUIRED_MISSING_CASES,
 )
 class TestDomainRequiredMissing:
     def test_missing_domain_required_field_fails(
-        self, schema_filename: str, make_instance: Any, domain_required: frozenset[str]
+        self, schema_filename: str, make_instance: Any, missing: str
     ) -> None:
-        for missing in domain_required:
-            instance = {k: v for k, v in make_instance().items() if k != missing}
-            with pytest.raises(ValidationError):
-                validator_for(schema_filename).validate(instance)
+        instance = {k: v for k, v in make_instance().items() if k != missing}
+        with pytest.raises(ValidationError):
+            validator_for(schema_filename).validate(instance)
 
 
 class TestQualityAnalyticsSnapshotValues:

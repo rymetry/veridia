@@ -42,12 +42,12 @@ def main(argv: list[str] | None = None) -> int:
         )
         validate_artifact(artifact)
         _write_json(args.output_path, artifact)
-    except (OSError, ValueError) as exc:
-        print(f"error: {exc}", file=sys.stderr)
-        return EXIT_INPUT_ERROR
     except ArtifactValidationError as exc:
         print(f"invalid generated artifact: {exc}", file=sys.stderr)
         return EXIT_VALIDATION_ERROR
+    except (OSError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return EXIT_INPUT_ERROR
 
     print(f"generated: {args.output_path}")
     return EXIT_OK

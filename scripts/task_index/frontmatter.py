@@ -129,7 +129,12 @@ def parse_task_file(path: str, filename: str, text: str) -> TaskEntry:
         )
 
     blocked_raw = fields.get("blocked_by", ())
-    blocked_by = blocked_raw if isinstance(blocked_raw, tuple) else ()
+    if isinstance(blocked_raw, tuple):
+        blocked_by = blocked_raw
+    elif blocked_raw == "":
+        blocked_by = ()
+    else:
+        raise TaskParseError(path, "blocked_by はlist形式([T-001])または空である必要がある")
 
     h1 = _extract_h1(path, body_lines)
     title = _title_from_h1(path, h1, task_id)

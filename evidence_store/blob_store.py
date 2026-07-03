@@ -28,7 +28,17 @@ class LocalBlobStore:
         key = _object_key(run_id, object_name)
         path = self._path_for_key(key)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_bytes(data)
+        try:
+            with path.open("xb") as handle:
+                handle.write(data)
+        except FileExistsError as exc:
+            raise EvidenceStoreError(
+                f"blob already exists for run_id={run_id!r} object_name={object_name!r}"
+            ) from exc
+        except OSError as exc:
+            raise EvidenceStoreError(
+                f"failed to write blob for run_id={run_id!r} object_name={object_name!r}: {exc}"
+            ) from exc
         return self._ref_for_key(key)
 
     def get(self, logical_ref: str) -> bytes:
@@ -66,6 +76,11 @@ class LocalBlobStore:
         if parsed.scheme != LOGICAL_REF_SCHEME or parsed.netloc != self.store_name:
             raise EvidenceStoreError(f"unsupported blob logical ref: {logical_ref}")
         path = parsed.path.removeprefix("/")
+        raw_parts = path.split("/")
+        if any(part == "" for part in raw_parts):
+            raise EvidenceStoreError(
+                f"blob logical ref contains an invalid object path: {logical_ref}"
+            )
         parts = PurePosixPath(path).parts
         if len(parts) < 2:
             raise EvidenceStoreError(
@@ -76,6 +91,8 @@ class LocalBlobStore:
 
 def _object_key(run_id: str, object_name: str) -> PurePosixPath:
     _validate_run_id(run_id)
+    if "/" in object_name and any(part == "" for part in object_name.split("/")):
+        raise EvidenceStoreError(f"object name must be a relative object key: {object_name!r}")
     object_path = PurePosixPath(object_name)
     if object_path.is_absolute() or not object_path.parts:
         raise EvidenceStoreError(f"invalid object name: {object_name!r}")

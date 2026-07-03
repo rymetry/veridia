@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 from sandbox_env import SandboxEnvError, apply_seed, create, reset, state_hash
 from sandbox_env.cli import main
-from sandbox_env.clock import FIXED_NOW_ENV_VAR, now
+from sandbox_env.clock import FIXED_NOW_ENV_VAR, now, parse_fixed_now
 
 FIXED_NOW_TEXT = "2026-07-03T12:34:56.789012Z"
 
@@ -138,3 +138,103 @@ def test_clock_rejects_invalid_fixed_now_with_context(monkeypatch: pytest.Monkey
 
     with pytest.raises(SandboxEnvError, match=FIXED_NOW_ENV_VAR):
         now()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "not-a-date",
+        "2026-07-03T12:34:56+09:00",
+    ],
+)
+def test_parse_fixed_now_rejects_invalid_or_non_utc_values(value: str) -> None:
+    with pytest.raises(SandboxEnvError, match=FIXED_NOW_ENV_VAR):
+        parse_fixed_now(value)
+
+
+@pytest.mark.parametrize(
+    "manifest_payload",
+    [
+        {"version": "sandbox-fixture-seed.v1", "directories": ["../escape"], "files": []},
+        {"version": "sandbox-fixture-seed.v1", "directories": ["/absolute"], "files": []},
+        {
+            "version": "sandbox-fixture-seed.v1",
+            "directories": [],
+            "files": [{"path": "../escape.txt", "content": "x"}],
+        },
+        {
+            "version": "sandbox-fixture-seed.v1",
+            "directories": [],
+            "files": [{"path": "/absolute.txt", "content": "x"}],
+        },
+    ],
+)
+def test_seed_manifest_rejects_paths_that_escape_sandbox(
+    tmp_path: Path,
+    manifest_payload: dict[str, object],
+) -> None:
+    sandbox_root = tmp_path / "sandbox"
+    seed_path = tmp_path / "seed.json"
+    seed_path.write_text(json.dumps(manifest_payload), encoding="utf-8")
+    create(sandbox_root)
+
+    with pytest.raises(SandboxEnvError, match="relative sandbox path"):
+        apply_seed(sandbox_root, seed_path)
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        ("[]", "JSON object"),
+        (json.dumps({"version": "wrong", "directories": [], "files": []}), "unsupported"),
+        (
+            json.dumps({"version": "sandbox-fixture-seed.v1", "directories": {}, "files": []}),
+            "directories",
+        ),
+        (
+            json.dumps({"version": "sandbox-fixture-seed.v1", "directories": [1], "files": []}),
+            "directory at index 0",
+        ),
+        (
+            json.dumps({"version": "sandbox-fixture-seed.v1", "directories": [], "files": {}}),
+            "files",
+        ),
+        (
+            json.dumps({"version": "sandbox-fixture-seed.v1", "directories": [], "files": [1]}),
+            "file at index 0",
+        ),
+        (
+            json.dumps({"version": "sandbox-fixture-seed.v1", "directories": [], "files": [{}]}),
+            "missing string path",
+        ),
+        (
+            json.dumps(
+                {
+                    "version": "sandbox-fixture-seed.v1",
+                    "directories": [],
+                    "files": [{"path": "workspace/file.txt"}],
+                }
+            ),
+            "missing string content",
+        ),
+    ],
+)
+def test_seed_manifest_validation_errors_include_context(
+    tmp_path: Path,
+    payload: str,
+    message: str,
+) -> None:
+    sandbox_root = tmp_path / "sandbox"
+    seed_path = tmp_path / "seed.json"
+    seed_path.write_text(payload, encoding="utf-8")
+    create(sandbox_root)
+
+    with pytest.raises(SandboxEnvError, match=message):
+        apply_seed(sandbox_root, seed_path)
+
+
+def test_apply_seed_requires_existing_sandbox_root(tmp_path: Path) -> None:
+    seed_path = write_seed_manifest(tmp_path / "seed.json")
+
+    with pytest.raises(SandboxEnvError, match="sandbox root"):
+        apply_seed(tmp_path / "missing-sandbox", seed_path)

@@ -89,3 +89,67 @@ def test_rejects_event_types_outside_phase_0_subset(tmp_path: Path) -> None:
         )
 
     assert store.find_by_trace_id(context.trace_id) == ()
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("run_id", "", "run_id"),
+        ("trace_id", "", "trace_id"),
+        ("span_id", "", "span_id"),
+        ("parent_span_id", "", "parent_span_id"),
+        ("sequence", -1, "sequence"),
+        ("name", "", "name"),
+        ("status", "", "status"),
+        ("started_at", "", "started_at"),
+        ("ended_at", "", "ended_at"),
+        ("latency_ms", -1, "latency_ms"),
+    ],
+)
+def test_trace_record_rejects_invalid_field_values(
+    field: str,
+    value: object,
+    message: str,
+) -> None:
+    from trace_store import TraceRecord, TraceStoreError
+
+    values = {
+        "run_id": "run-20260703T123456789012Z-000000000001",
+        "trace_id": "trace-20260703-00000000000000a2",
+        "span_id": "00000000000000a3",
+        "parent_span_id": None,
+        "sequence": 1,
+        "event_type": "tool_call",
+        "name": "tool.orders.cancel",
+        "status": "ok",
+        "started_at": "2026-07-03T12:34:56Z",
+        "ended_at": "2026-07-03T12:34:57Z",
+        "latency_ms": 1,
+        "redacted_args": {},
+        "result_summary": None,
+        "error_summary": None,
+    }
+    values[field] = value
+
+    with pytest.raises(TraceStoreError, match=message):
+        TraceRecord(**values)
+
+
+def test_save_record_rejects_non_json_serializable_redacted_args(tmp_path: Path) -> None:
+    from trace_store import TraceStore, TraceStoreError
+
+    context = make_trace_context(span_id="00000000000000a3")
+    store = TraceStore.open(tmp_path / "trace")
+
+    with pytest.raises(TraceStoreError, match="JSON-serializable"):
+        store.save_record(
+            context,
+            sequence=1,
+            event_type="tool_call",
+            name="tool.orders.cancel",
+            status="ok",
+            started_at="2026-07-03T12:34:56Z",
+            redacted_args={"bad": {object()}},
+        )
+
+    assert store.find_by_trace_id(context.trace_id) == ()

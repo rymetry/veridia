@@ -43,14 +43,18 @@ def build_entries(tasks_dir: Path) -> tuple[TaskEntry, ...]:
         parse_task_file(str(path.name), path.name, path.read_text(encoding="utf-8"))
         for path in files
     ]
-    return tuple(sorted(entries, key=lambda e: e.task_id))
+    return tuple(sorted(entries, key=_task_sort_key))
 
 
 def generate_index_text(tasks_dir: Path, generated_on: str) -> str:
     """タスクディレクトリから _index.md の全文を組み立てる。"""
     entries = build_entries(tasks_dir)
     epic_labels = load_epic_labels()
-    return render_index(entries, epic_labels, generated_on)
+    return render_index(entries, epic_labels, generated_on, phase_dir_name=tasks_dir.name)
+
+
+def _task_sort_key(entry: TaskEntry) -> tuple[int, str]:
+    return (int(entry.task_id.removeprefix("T-")), entry.task_id)
 
 
 def _parse_args(argv: list[str]) -> argparse.Namespace:

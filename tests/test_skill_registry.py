@@ -9,6 +9,7 @@ T-022:
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -154,3 +155,89 @@ class TestSkillRegistryConsistency:
 
         with pytest.raises(SkillRegistryConsistencyError, match="version mismatch"):
             validate_registry_consistency(registry, QA_SKILLS_DIR)
+
+    @pytest.mark.parametrize("field", ["input_schema", "output_schema", "changelog"])
+    def test_referenced_registry_files_must_exist(self, field: str) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        entry = {**load_registry()["skills"][0], field: "missing.schema.json"}
+        registry = {**load_registry(), "skills": [entry]}
+
+        with pytest.raises(SkillRegistryConsistencyError, match=field):
+            validate_registry_consistency(registry, QA_SKILLS_DIR)
+
+    def test_manifest_name_must_match_skill_id(self, tmp_path: Path) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        qa_skills_dir = tmp_path / "qa-skills"
+        shutil.copytree(QA_SKILLS_DIR, qa_skills_dir)
+        manifest_path = qa_skills_dir / "_template" / "manifest.yaml"
+        manifest_path.write_text(
+            manifest_path.read_text(encoding="utf-8").replace(
+                "name: template-skill",
+                "name: other-skill",
+            ),
+            encoding="utf-8",
+        )
+
+        with pytest.raises(SkillRegistryConsistencyError, match="name mismatch"):
+            validate_registry_consistency(load_registry(), qa_skills_dir)
+
+    def test_duplicate_skill_id_is_detected_even_when_entries_differ(self) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        first = load_registry()["skills"][0]
+        second = {**first, "version": "0.1.1"}
+        registry = {**load_registry(), "skills": [first, second]}
+
+        with pytest.raises(SkillRegistryConsistencyError, match="duplicate skill_id"):
+            validate_registry_consistency(registry, QA_SKILLS_DIR)
+
+    @pytest.mark.parametrize(
+        ("registry", "message"),
+        [
+            ({"skills": "template-skill"}, "must be a sequence"),
+            ({"skills": ["template-skill"]}, "must be a mapping"),
+            (
+                {
+                    "skills": [
+                        {k: v for k, v in load_registry()["skills"][0].items() if k != "skill_id"}
+                    ]
+                },
+                "skill_id",
+            ),
+            (
+                {"skills": [{**load_registry()["skills"][0], "package_path": "../escape"}]},
+                "escapes",
+            ),
+        ],
+    )
+    def test_registry_consistency_rejects_invalid_registry_shapes(
+        self,
+        registry: dict[str, Any],
+        message: str,
+    ) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        with pytest.raises(SkillRegistryConsistencyError, match=message):
+            validate_registry_consistency(registry, QA_SKILLS_DIR)
+
+    def test_invalid_manifest_yaml_is_reported(self, tmp_path: Path) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        qa_skills_dir = tmp_path / "qa-skills"
+        shutil.copytree(QA_SKILLS_DIR, qa_skills_dir)
+        (qa_skills_dir / "_template" / "manifest.yaml").write_text("name: [", encoding="utf-8")
+
+        with pytest.raises(SkillRegistryConsistencyError, match="invalid YAML"):
+            validate_registry_consistency(load_registry(), qa_skills_dir)
+
+    def test_non_mapping_manifest_is_reported(self, tmp_path: Path) -> None:
+        from skill_registry import SkillRegistryConsistencyError, validate_registry_consistency
+
+        qa_skills_dir = tmp_path / "qa-skills"
+        shutil.copytree(QA_SKILLS_DIR, qa_skills_dir)
+        (qa_skills_dir / "_template" / "manifest.yaml").write_text("- item\n", encoding="utf-8")
+
+        with pytest.raises(SkillRegistryConsistencyError, match="must parse to a mapping"):
+            validate_registry_consistency(load_registry(), qa_skills_dir)

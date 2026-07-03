@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://veridia.dev/schemas/quality-analytics-snapshot.schema.json",
-  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)。§6.17に無いevidence bucket必須化はPhase 0でEvidence Store参照を集約するための構造逸脱としてdocs/knowledge/learning-log.md 2026-07-03 entryに記録",
   "title": "QualityAnalyticsSnapshot",
   "description": "品質分析snapshot artifact(North Star §6.17)。ArtifactBaseを allOf で継承する。domain必須は snapshot_id / scope / coverage / execution / evidence / cost。Phase 0にはこのartifactのproducerが無いため、coverage / execution / evidence / cost のbucket存在を契約し、個別metricはoptionalまたはnull許容にする。空配列・空objectは未収集または該当なしを表し、source_refsの根拠必須はArtifactBaseで強制する。末端の具象schemaのため unevaluatedProperties: false で閉じる。各bucketは運用metric追加を想定して additionalProperties: true を明示する。artifact_typeの再列挙理由は requirement-spec.schema.json 参照",
   "type": "object",
@@ -165,7 +165,7 @@
         }
       },
       "additionalProperties": true,
-      "description": "evidence集約bucket。source_refsとは別に集計元runやEvidence Store参照を保持する"
+      "description": "evidence集約bucket。source_refsとは別に集計元runやEvidence Store参照を保持する。§6.17からのPhase 0構造逸脱であり、理由はdocs/knowledge/learning-log.md 2026-07-03 entryに記録"
     },
     "cost": {
       "type": "object",

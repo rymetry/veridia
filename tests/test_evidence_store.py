@@ -42,6 +42,7 @@ def test_save_and_read_execution_evidence_by_artifact_id_and_trace_id(tmp_path: 
         test_result=test_result,
         state_diff=state_diff,
         logs={"test-runner.log": b"3 passed\n"},
+        reproduction_bundle={"argv": ["pytest"], "seed": {"id": "fixture"}},
     )
 
     by_artifact_id = store.get_by_artifact_id(artifact["artifact_id"])
@@ -65,6 +66,14 @@ def test_save_and_read_execution_evidence_by_artifact_id_and_trace_id(tmp_path: 
     assert by_artifact_id.test_result == test_result
     assert by_artifact_id.state_diff == state_diff
     assert by_artifact_id.logs == {"test-runner.log": b"3 passed\n"}
+    reproduction_ref = by_artifact_id.payload["reproduction_bundle"]
+    assert (
+        reproduction_ref
+        == f"object-storage://evidence/{artifact['run_id']}/reproduction-bundle.json"
+    )
+    assert (
+        store.blob_store.get(reproduction_ref) == b'{"argv": ["pytest"], "seed": {"id": "fixture"}}'
+    )
 
 
 def test_save_rejects_invalid_execution_evidence_before_writing_blobs(tmp_path: Path) -> None:
@@ -95,3 +104,46 @@ def test_local_blob_store_uses_s3_style_logical_refs(tmp_path: Path) -> None:
     assert ref == f"object-storage://evidence/{run_id}/state-diff.json"
     assert blob_store.get(ref) == b'{"changed": true}'
     assert blob_store.list(run_id) == (ref,)
+
+
+def test_get_by_artifact_id_raises_for_missing_evidence(tmp_path: Path) -> None:
+    from evidence_store import EvidenceNotFoundError, EvidenceStore
+
+    store = EvidenceStore.open(tmp_path / "evidence")
+
+    with pytest.raises(EvidenceNotFoundError, match="ART-NOPE"):
+        store.get_by_artifact_id("ART-NOPE")
+
+
+def test_local_blob_store_rejects_implicit_overwrite(tmp_path: Path) -> None:
+    from evidence_store import EvidenceStoreError, LocalBlobStore
+
+    run_id = "run-20260703T123456789012Z-000000000001"
+    blob_store = LocalBlobStore(tmp_path / "objects")
+    blob_store.put(run_id, "state-diff.json", b"first")
+
+    with pytest.raises(EvidenceStoreError, match="already exists"):
+        blob_store.put(run_id, "state-diff.json", b"second")
+
+    assert blob_store.get(f"object-storage://evidence/{run_id}/state-diff.json") == b"first"
+
+
+@pytest.mark.parametrize(
+    "logical_ref",
+    [
+        "file://evidence/run-20260703T123456789012Z-000000000001/state-diff.json",
+        "object-storage://evidence/run-20260703T123456789012Z-000000000001",
+        "object-storage://evidence/run-20260703T123456789012Z-000000000001/../bad.json",
+        "object-storage://evidence/run-20260703T123456789012Z-000000000001//bad.json",
+    ],
+)
+def test_local_blob_store_rejects_invalid_logical_refs(
+    tmp_path: Path,
+    logical_ref: str,
+) -> None:
+    from evidence_store import EvidenceStoreError, LocalBlobStore
+
+    blob_store = LocalBlobStore(tmp_path / "objects")
+
+    with pytest.raises(EvidenceStoreError):
+        blob_store.get(logical_ref)

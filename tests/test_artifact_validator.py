@@ -143,3 +143,46 @@ def test_cli_reports_field_path_for_invalid_artifact(
     captured = capsys.readouterr()
     assert "$.source_refs" in captured.err
     assert "[] should be non-empty" in captured.err
+
+
+@pytest.mark.parametrize(
+    ("filename", "content", "expected"),
+    [
+        ("missing.json", None, "failed to read"),
+        ("broken.json", "{not json", "failed to parse"),
+        ("array.json", "[]", "artifact JSON must be an object"),
+    ],
+)
+def test_cli_reports_input_errors_as_exit_2(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    filename: str,
+    content: str | None,
+    expected: str,
+) -> None:
+    from artifact_validator.cli import main
+
+    path = tmp_path / filename
+    if content is not None:
+        path.write_text(content, encoding="utf-8")
+
+    assert main([str(path)]) == 2
+    captured = capsys.readouterr()
+    assert expected in captured.err
+
+
+def test_cli_json_output_includes_machine_readable_validation_errors(
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    from artifact_validator.cli import main
+
+    artifact = make_test_asset_index_instance()
+    artifact["source_refs"] = []
+    path = tmp_path / "artifact.json"
+    path.write_text(json.dumps(artifact), encoding="utf-8")
+
+    assert main([str(path), "--json"]) == 1
+    payload = json.loads(capsys.readouterr().err)
+    assert payload["path"] == str(path)
+    assert payload["errors"][0]["field_path"] == "$.source_refs"
