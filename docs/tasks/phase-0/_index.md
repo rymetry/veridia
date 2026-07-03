@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-03 / 全23タスク(not_started: 1 / done: 22)
+生成日: 2026-07-03 / 全23タスク(done: 23)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -28,7 +28,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-020](T-020-sandbox-runner-determinism.md) | sandbox | done | T-013, T-019 | sandbox test runner最小版と決定性検証 |
 | [T-021](T-021-skill-package-convention.md) | skill-registry-gatepolicy | done | T-002 | skill package規約とtemplate skeleton |
 | [T-022](T-022-skill-registry-metadata.md) | skill-registry-gatepolicy | done | T-021 | skill registry metadata定義 |
-| [T-023](T-023-gate-policy-minimal.md) | skill-registry-gatepolicy | not_started | T-002, T-003 | GatePolicy最小版(gate-policy.yaml + CHANGELOG) |
+| [T-023](T-023-gate-policy-minimal.md) | skill-registry-gatepolicy | done | T-002, T-003 | GatePolicy最小版(gate-policy.yaml + CHANGELOG) |
 
 ## epic別内訳
 

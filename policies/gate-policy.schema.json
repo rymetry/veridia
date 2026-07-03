@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/policies/gate-policy.schema.json",
+  "$comment": "schema semver: 0.1.0。GatePolicyはversioned configでありartifactではないためschemas/*.schema.jsonのPydantic生成対象に含めない。North Star §17.0-§17.3を参照する",
+  "title": "GatePolicy",
+  "description": "Quality Gateの導入段階(shadow / warn / block)と閾値を管理するversioned config",
+  "type": "object",
+  "properties": {
+    "policy_version": {
+      "$ref": "#/$defs/semver",
+      "description": "GatePolicy configのversion"
+    },
+    "schema_version": {
+      "$ref": "#/$defs/semver",
+      "description": "このpolicyが従うschema version"
+    },
+    "north_star_refs": {
+      "$ref": "#/$defs/nonEmptyStringArray",
+      "description": "根拠となるNorth Star §参照"
+    },
+    "calibration_note": {
+      "$ref": "#/$defs/nonEmptyString",
+      "description": "§17.2の初期閾値が較正前の出発点であることを示す注記"
+    },
+    "gates": {
+      "type": "object",
+      "properties": {
+        "source_grounding": { "$ref": "#/$defs/gatePolicyEntry" },
+        "oracle": { "$ref": "#/$defs/gatePolicyEntry" },
+        "testability": { "$ref": "#/$defs/gatePolicyEntry" },
+        "evidence": { "$ref": "#/$defs/gatePolicyEntry" },
+        "security": { "$ref": "#/$defs/gatePolicyEntry" },
+        "human_review": { "$ref": "#/$defs/gatePolicyEntry" },
+        "flaky": { "$ref": "#/$defs/gatePolicyEntry" },
+        "judge_calibration": { "$ref": "#/$defs/gatePolicyEntry" },
+        "regression": { "$ref": "#/$defs/gatePolicyEntry" },
+        "cost": { "$ref": "#/$defs/gatePolicyEntry" },
+        "change_impact": { "$ref": "#/$defs/gatePolicyEntry" },
+        "test_impact": { "$ref": "#/$defs/gatePolicyEntry" },
+        "coverage_gap": { "$ref": "#/$defs/gatePolicyEntry" },
+        "reuse_dedup": { "$ref": "#/$defs/gatePolicyEntry" },
+        "performance_risk": { "$ref": "#/$defs/gatePolicyEntry" },
+        "reporting": { "$ref": "#/$defs/gatePolicyEntry" }
+      },
+      "required": [
+        "source_grounding",
+        "oracle",
+        "testability",
+        "evidence",
+        "security",
+        "human_review",
+        "flaky",
+        "judge_calibration",
+        "regression",
+        "cost",
+        "change_impact",
+        "test_impact",
+        "coverage_gap",
+        "reuse_dedup",
+        "performance_risk",
+        "reporting"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": ["policy_version", "schema_version", "north_star_refs", "calibration_note", "gates"],
+  "additionalProperties": false,
+  "$defs": {
+    "gatePolicyEntry": {
+      "type": "object",
+      "properties": {
+        "display_name": { "$ref": "#/$defs/nonEmptyString" },
+        "stage": {
+          "type": "string",
+          "enum": ["shadow", "warn", "block"]
+        },
+        "north_star_refs": { "$ref": "#/$defs/nonEmptyStringArray" },
+        "block_condition": { "$ref": "#/$defs/nonEmptyString" },
+        "thresholds": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/threshold" },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "display_name",
+        "stage",
+        "north_star_refs",
+        "block_condition",
+        "thresholds"
+      ],
+      "additionalProperties": false
+    },
+    "threshold": {
+      "type": "object",
+      "properties": {
+        "metric": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+        },
+        "operator": {
+          "type": "string",
+          "enum": [
+            "equals",
+            "greater_than",
+            "greater_than_or_equal",
+            "less_than",
+            "less_than_or_equal"
+          ]
+        },
+        "value": {
+          "type": ["number", "string", "boolean"]
+        },
+        "unit": {
+          "type": "string",
+          "enum": [
+            "boolean",
+            "count",
+            "currency_budget",
+            "ratio",
+            "sample_rate",
+            "score",
+            "status",
+            "trend"
+          ]
+        },
+        "source_ref": { "$ref": "#/$defs/nonEmptyString" }
+      },
+      "required": ["metric", "operator", "value", "unit", "source_ref"],
+      "additionalProperties": false
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "nonEmptyStringArray": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/nonEmptyString" },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    }
+  }
+}

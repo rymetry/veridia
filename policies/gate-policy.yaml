@@ -1,0 +1,228 @@
+# GatePolicy v0.1.0
+# North Star §17.0-§17.3 に基づく Phase 0 最小版。
+# §17.2 の閾値はいずれも較正前の出発点であり、恒久的なprocess固定の根拠にしない。
+policy_version: "0.1.0"
+schema_version: "0.1.0"
+north_star_refs:
+  - "§17.0"
+  - "§17.1"
+  - "§17.2"
+  - "§17.3"
+calibration_note: "§17.2の閾値は較正前の出発点。運用開始後4〜8週間の実測データで較正する。"
+gates:
+  source_grounding:
+    display_name: "Source grounding gate"
+    stage: block
+    north_star_refs: ["§17.0", "§17.1", "§17.2"]
+    block_condition: "変更対象のP0/P1要求のsource_refsが空"
+    thresholds:
+      - metric: p0_p1_source_grounding
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+
+  oracle:
+    display_name: "Oracle gate"
+    stage: block
+    north_star_refs: ["§17.0", "§17.1", "§17.2"]
+    block_condition: "変更対象のP0/P1要求にOracleSpecがない"
+    thresholds:
+      - metric: p0_p1_oracle_spec_definition_rate
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+
+  testability:
+    display_name: "Testability gate"
+    stage: warn
+    north_star_refs: ["§17.1"]
+    block_condition: "観測・制御・reset不能なcritical testをCI昇格しようとしている"
+    thresholds:
+      - metric: critical_test_ci_promotion_testable
+        operator: equals
+        value: true
+        unit: boolean
+        source_ref: "§17.1"
+
+  evidence:
+    display_name: "Evidence gate"
+    stage: block
+    north_star_refs: ["§17.0", "§17.1", "§17.2"]
+    block_condition: "失敗時にstate diff、trace、再現手順がない"
+    thresholds:
+      - metric: high_risk_evidence_completeness
+        operator: greater_than_or_equal
+        value: 0.95
+        unit: ratio
+        source_ref: "§17.2"
+
+  security:
+    display_name: "Security gate"
+    stage: block
+    north_star_refs: ["§17.0", "§17.1", "§17.2"]
+    block_condition: "high/critical security findingが未解決"
+    thresholds:
+      - metric: critical_security_finding_open
+        operator: equals
+        value: 0
+        unit: count
+        source_ref: "§17.2"
+
+  human_review:
+    display_name: "Human review gate"
+    stage: warn
+    north_star_refs: ["§17.1"]
+    block_condition: "critical riskなのに人間承認がない"
+    thresholds:
+      - metric: critical_risk_human_approval_present
+        operator: equals
+        value: true
+        unit: boolean
+        source_ref: "§17.1"
+
+  flaky:
+    display_name: "Flaky gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2"]
+    block_condition: "CI昇格テストの再現成功率が閾値未満"
+    thresholds:
+      - metric: ci_promotion_reproduction_success_rate
+        operator: greater_than_or_equal
+        value: 0.95
+        unit: ratio
+        source_ref: "§17.2"
+      - metric: flaky_suspected_tests_release_block
+        operator: equals
+        value: false
+        unit: boolean
+        source_ref: "§17.2"
+
+  judge_calibration:
+    display_name: "Judge calibration gate"
+    stage: shadow
+    north_star_refs: ["§17.1", "§17.2"]
+    block_condition: "AI judgeと人間評価の一致率が閾値未満"
+    thresholds:
+      - metric: ai_judge_human_sample_review_rate
+        operator: greater_than_or_equal
+        value: 0.10
+        unit: sample_rate
+        source_ref: "§17.2"
+      - metric: judge_human_agreement
+        operator: greater_than_or_equal
+        value: 0.80
+        unit: ratio
+        source_ref: "§17.2"
+
+  regression:
+    display_name: "Regression gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2"]
+    block_condition: "過去重大障害の再現テストが失敗"
+    thresholds:
+      - metric: critical_regression_tests_pass
+        operator: equals
+        value: true
+        unit: boolean
+        source_ref: "§17.1"
+      - metric: regression_promotion_rate
+        operator: equals
+        value: "monthly_increase"
+        unit: trend
+        source_ref: "§17.2"
+
+  cost:
+    display_name: "Cost gate"
+    stage: shadow
+    north_star_refs: ["§17.1"]
+    block_condition: "PRあたりのLLM/testコストが予算超過"
+    thresholds:
+      - metric: pr_llm_test_cost_within_budget
+        operator: equals
+        value: true
+        unit: currency_budget
+        source_ref: "§17.1"
+
+  change_impact:
+    display_name: "Change impact gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2", "§17.3"]
+    block_condition: "P0/P1変更にChangeImpactSpecがない"
+    thresholds:
+      - metric: p0_p1_change_impact_spec_generation_rate
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+
+  test_impact:
+    display_name: "Test impact gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2", "§17.3"]
+    block_condition: "high-risk変更にTestImpactPlanがない"
+    thresholds:
+      - metric: high_risk_test_impact_plan_generation_rate
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+
+  coverage_gap:
+    display_name: "Coverage gap gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.3"]
+    block_condition: "critical CoverageGapが未解決"
+    thresholds:
+      - metric: critical_coverage_gap_open
+        operator: equals
+        value: 0
+        unit: count
+        source_ref: "§17.3"
+
+  reuse_dedup:
+    display_name: "Reuse / dedup gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2", "§17.3"]
+    block_condition: "新規TestAsset生成前にTestAssetIndex検索がない、または重複score閾値超過"
+    thresholds:
+      - metric: test_asset_index_search_before_generation
+        operator: equals
+        value: true
+        unit: boolean
+        source_ref: "§17.3"
+      - metric: duplicate_score
+        operator: less_than
+        value: 0.90
+        unit: score
+        source_ref: "§17.2"
+
+  performance_risk:
+    display_name: "Performance risk gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2", "§17.3"]
+    block_condition: "high PerformanceRiskSpecがあるのに検証skip承認がない"
+    thresholds:
+      - metric: high_performance_risk_skip_approval
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+
+  reporting:
+    display_name: "Reporting gate / Report completeness gate"
+    stage: warn
+    north_star_refs: ["§17.1", "§17.2", "§17.3"]
+    block_condition: "ReleaseReadinessReportがないrelease candidate"
+    thresholds:
+      - metric: release_readiness_report_generation_rate
+        operator: equals
+        value: 1.0
+        unit: ratio
+        source_ref: "§17.2"
+      - metric: warning_or_blocking_reason_evidence_refs_present
+        operator: equals
+        value: true
+        unit: boolean
+        source_ref: "§17.3"
