@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-07-03 [process-learning] Phase完了判定は「テストID+再実行可能コマンド」に落ちた完了条件なら機械的に済む(Phase 0 review)
+
+- 事実(何を観測したか): /phase-reviewでPhase 0完了条件7項目を再検証した。5項目はpytestのテストID単位で、2項目(TestAssetIndex / ChangeImpactSpec生成)はCLI実実行+validator検証で、全項目をその場で再実行して確認できた(全体 `uv run pytest` 545 passed。個別根拠は [phase-0-foundation.md §2](../plan/phase-0-foundation.md) の検証記録)。generatorのtimestamp既定が決定的sentinelだったこと(T-009 / T-010)も再実行検証を安定させた。判定側の追加作業はゼロで、「充足の解釈」を要する項目が無かった。
+- 学び(なぜ・何を変えるべきか): phase-0計画§2の方針「完了条件は検証方法まで具体化する」は機能した。以降のPhase計画でも、完了条件1項目ごとに再実行可能なコマンドまたはテストIDへ落とす形を維持する。曖昧な条件(例:「〜が使える」)は判定時に解釈コストと恣意性を生む。§29 DoD追跡表の更新では、Phase 0成果はすべて「基盤のみ」であり完成形項目の達成ではないと保守的に記録した(agent実行・実運用が乗って初めて達成になる)。
+- アクション(変更したもの・リンク): [phase-0-foundation.md §2](../plan/phase-0-foundation.md) へ根拠リンク記入、[00-overview.md](../plan/00-overview.md) のPhase 0 statusをdone化、§29追跡表を項目1 / 5 / 6 / 14 / 15 / 20 / 25で分割し根拠リンク付きで更新。northstar-proposalに値する乖離は無し。
+
 ## 2026-07-03 [process-learning] Evidence Store境界のredaction検出はPhase 0では呼び出し側責務として明記する(T-013)
 
 - 事実(何を観測したか): T-013のEvidence Store最小版は、ExecutionEvidenceをschema検証してmetadata DB + blob storeへ保存する境界を実装する。一方、North Star §15.4のraw secret / PII / raw production data / private chain-of-thoughtの機械的検出は、ADR-0003でもPhase 0最小として利用側redaction前提に留めている。
