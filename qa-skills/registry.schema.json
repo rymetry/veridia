@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/registry.schema.json",
+  "$comment": "schema semver: 0.1.0。skill registry metadataはartifactではないためschemas/*.schema.jsonのPydantic生成対象に含めない。North Star §28.2『残すもの』のSkill registry metadataを保持する",
+  "title": "SkillRegistry",
+  "description": "QAプラットフォームskill packageのregistry index契約(North Star §28.2)。独立Agent Registryは作らず、skill packageと運用metadataをリポジトリ内indexとして管理する。Phase 0で未収集の運用値はnullまたはnot_collectedを許す",
+  "type": "object",
+  "properties": {
+    "registry_version": {
+      "$ref": "#/$defs/semver",
+      "description": "registry schema/index形式のsemver。skill個別のschema_versionとは別"
+    },
+    "skills": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "skill_id": {
+            "$ref": "#/$defs/skillId",
+            "description": "North Star §28.2: skill_id。skill manifestのnameと同じ安定識別子"
+          },
+          "version": {
+            "$ref": "#/$defs/semver",
+            "description": "North Star §28.2: version。skill manifestのversionと一致させる"
+          },
+          "owner": {
+            "$ref": "#/$defs/nonEmptyString",
+            "description": "North Star §28.2: owner。skill manifestのownerと同じ責任主体"
+          },
+          "package_path": {
+            "$ref": "#/$defs/relativePath",
+            "description": "registry entryが指すqa-skills/配下のskill package directory"
+          },
+          "allowed_tools": {
+            "type": "array",
+            "items": { "$ref": "#/$defs/toolId" },
+            "uniqueItems": true,
+            "description": "North Star §28.2: allowed_tools。Phase 0では未付与なら空配列"
+          },
+          "input_schema": {
+            "$ref": "#/$defs/relativeJsonSchemaPath",
+            "description": "North Star §28.2: input_schema。package_pathからの相対path"
+          },
+          "output_schema": {
+            "$ref": "#/$defs/relativeJsonSchemaPath",
+            "description": "North Star §28.2: output_schema。package_pathからの相対path"
+          },
+          "schema_version": {
+            "anyOf": [{ "$ref": "#/$defs/semver" }, { "type": "null" }],
+            "description": "North Star §28.2: schema_version。skill入出力schemaの版。未確定ならnull"
+          },
+          "eval_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": ["not_collected", "passed", "failed", "blocked"]
+              },
+              { "type": "null" }
+            ],
+            "description": "North Star §28.2: eval_status。Phase 0で未実行ならnot_collectedまたはnull"
+          },
+          "last_successful_run": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d+)?(?:Z|[+-]\\d{2}:\\d{2})$"
+              },
+              { "type": "null" }
+            ],
+            "description": "North Star §28.2: last_successful_run。未実行ならnull"
+          },
+          "policy_violation_count": {
+            "anyOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }],
+            "description": "North Star §28.2: policy_violation_count。未収集ならnull"
+          },
+          "policy_violation_metrics": {
+            "anyOf": [
+              {
+                "type": "object",
+                "propertyNames": { "$ref": "#/$defs/metricId" },
+                "additionalProperties": { "type": "integer", "minimum": 0 }
+              },
+              { "type": "null" }
+            ],
+            "description": "North Star §28.2: policy_violation_metrics。未収集ならnull"
+          },
+          "changelog": {
+            "$ref": "#/$defs/relativeMarkdownPath",
+            "description": "North Star §28.2: changelog。package_pathからの相対path"
+          }
+        },
+        "required": [
+          "skill_id",
+          "version",
+          "owner",
+          "package_path",
+          "allowed_tools",
+          "input_schema",
+          "output_schema",
+          "schema_version",
+          "eval_status",
+          "last_successful_run",
+          "policy_violation_count",
+          "policy_violation_metrics",
+          "changelog"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    }
+  },
+  "required": ["registry_version", "skills"],
+  "additionalProperties": false,
+  "$defs": {
+    "skillId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$"
+    },
+    "toolId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[-_.][a-z0-9]+)*$"
+    },
+    "metricId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:_[a-z0-9]+)*$"
+    },
+    "nonEmptyString": {
+      "type": "string",
+      "minLength": 1
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*$"
+    },
+    "relativeJsonSchemaPath": {
+      "allOf": [
+        { "$ref": "#/$defs/relativePath" },
+        { "pattern": "\\.schema\\.json$" }
+      ]
+    },
+    "relativeMarkdownPath": {
+      "allOf": [
+        { "$ref": "#/$defs/relativePath" },
+        { "pattern": "\\.md$" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,15 @@
+registry_version: "0.1.0"
+skills:
+  - skill_id: template-skill
+    version: "0.1.0"
+    owner: qa-platform
+    package_path: _template
+    allowed_tools: []
+    input_schema: input.schema.json
+    output_schema: output.schema.json
+    schema_version: "0.1.0"
+    eval_status: not_collected
+    last_successful_run: null
+    policy_violation_count: null
+    policy_violation_metrics: null
+    changelog: changelog.md
