@@ -31,6 +31,7 @@ src = [
     "artifact_validator",
     "change_impact_generator",
     "evidence_store",
+    "sandbox_runner",
     "sandbox_env",
     "scripts",
     "test_asset_index_generator",
