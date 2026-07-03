@@ -20,9 +20,9 @@ blocked_by: [T-006, T-008]
 
 ## DoD
 
-- [ ] コマンド1発で指定repoのテストファイルを走査し、TestAssetIndex JSONを生成できる(veridia自身を対象に実行して確認)
-- [ ] 生成物に1件以上のテスト資産(path / type)が含まれ、T-008 validatorをpassする(テストで実証)
-- [ ] Phase 0で取得できないfield(covered requirement / flake rate等)の扱い(null / 未収集の区別)が生成物とREADMEに明記されている
+- [x] コマンド1発で指定repoのテストファイルを走査し、TestAssetIndex JSONを生成できる(veridia自身を対象に実行して確認)
+- [x] 生成物に1件以上のテスト資産(path / type)が含まれ、T-008 validatorをpassする(テストで実証)
+- [x] Phase 0で取得できないfield(covered requirement / flake rate等)の扱い(null / 未収集の区別)が生成物とREADMEに明記されている
 
 ## 検証方法・根拠
 

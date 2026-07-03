@@ -20,9 +20,9 @@ trialごとに使い捨てられる隔離実行環境の最小版を実装する
 
 ## DoD
 
-- [ ] コマンド1発でsandbox環境の新規作成・破棄・resetができる(実行ログで確認)
-- [ ] 2回連続で作成(またはreset)した環境が同一の初期状態であることがテストで実証されている(状態のhash比較等)
-- [ ] §5.7の要件のうちPhase 0で実装しない項目(network egress control / tenant isolation等)がREADMEにスコープ外として明記されている
+- [x] コマンド1発でsandbox環境の新規作成・破棄・resetができる(実行ログで確認)
+- [x] 2回連続で作成(またはreset)した環境が同一の初期状態であることがテストで実証されている(状態のhash比較等)
+- [x] §5.7の要件のうちPhase 0で実装しない項目(network egress control / tenant isolation等)がREADMEにスコープ外として明記されている
 
 ## 検証方法・根拠
 

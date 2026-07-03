@@ -20,9 +20,9 @@ blocked_by: [T-002, T-003]
 
 ## DoD
 
-- [ ] ID形式・採番・伝播規則(run → trace → artifact / tool callへの付与点)が文書化されている(設計判断を伴う場合はADR、そうでなければ実装リポジトリ内のdesign doc)
-- [ ] ID生成ユーティリティが実装され、形式・一意性がテストで検証されている
-- [ ] ArtifactBase(T-003)の `trace_id` fieldと形式が整合している(schemaのpattern等で確認)
+- [x] ID形式・採番・伝播規則(run → trace → artifact / tool callへの付与点)が文書化されている(設計判断を伴う場合はADR、そうでなければ実装リポジトリ内のdesign doc)
+- [x] ID生成ユーティリティが実装され、形式・一意性がテストで検証されている
+- [x] ArtifactBase(T-003)の `trace_id` fieldと形式が整合している(schemaのpattern等で確認)
 
 ## 検証方法・根拠
 

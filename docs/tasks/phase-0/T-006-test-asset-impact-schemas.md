@@ -20,10 +20,10 @@ Test Asset Foundation / Quality Intelligence Foundationの入口となる2 artif
 
 ## DoD
 
-- [ ] `schemas/test-asset-index.schema.json` / `change-impact-spec.schema.json` が存在し、`allOf` でartifact-baseを継承している
-- [ ] TestAssetIndexが既存テストのpath / type / covered requirement・risk / oracle / flake rateを保持できる(§21 Week 1のDoD準拠。サンプルinstanceで確認)
-- [ ] ChangeImpactSpecが影響component / requirement / risk / APIを保持できる(サンプルinstanceで確認)
-- [ ] 各schemaについて、有効サンプルがpassし、不正サンプルがfailするテストがある
+- [x] `schemas/test-asset-index.schema.json` / `change-impact-spec.schema.json` が存在し、`allOf` でartifact-baseを継承している
+- [x] TestAssetIndexが既存テストのpath / type / covered requirement・risk / oracle / flake rateを保持できる(§21 Week 1のDoD準拠。サンプルinstanceで確認)
+- [x] ChangeImpactSpecが影響component / requirement / risk / APIを保持できる(サンプルinstanceで確認)
+- [x] 各schemaについて、有効サンプルがpassし、不正サンプルがfailするテストがある
 
 ## 検証方法・根拠
 

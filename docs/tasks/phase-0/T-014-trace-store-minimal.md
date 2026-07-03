@@ -20,8 +20,8 @@ agent実行過程の記録先となるTrace Store最小版を実装する。Tool
 
 ## DoD
 
-- [ ] trace record(最低限: tool call、error)をrun_id / trace_id付きで保存し、trace_idまたはrun_idを指定して関連recordを時系列で照会できることが統合テストで実証されている
-- [ ] §15.2のうちPhase 0で保存しない対象(handoff / guardrail / QI event等)がREADMEにスコープ外として明記されている
+- [x] trace record(最低限: tool call、error)をrun_id / trace_id付きで保存し、trace_idまたはrun_idを指定して関連recordを時系列で照会できることが統合テストで実証されている
+- [x] §15.2のうちPhase 0で保存しない対象(handoff / guardrail / QI event等)がREADMEにスコープ外として明記されている
 
 ## 検証方法・根拠
 

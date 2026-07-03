@@ -20,9 +20,9 @@ sandbox内でtestを実行し、結果をExecutionEvidenceとしてEvidence Stor
 
 ## DoD
 
-- [ ] runnerがsandbox内でサンプルtestを実行し、結果とstate diffをExecutionEvidenceとしてEvidence Storeへ保存できる(統合テストで実証)
-- [ ] 同一testを2回実行し、結果(pass/fail、state diff)が一致することがテストで実証されている(計画§2完了条件)
-- [ ] 各実行にrun_id / trace_id(T-012)が付与され、Evidence Storeから読み出せる
+- [x] runnerがsandbox内でサンプルtestを実行し、結果とstate diffをExecutionEvidenceとしてEvidence Storeへ保存できる(統合テストで実証)
+- [x] 同一testを2回実行し、結果(pass/fail、state diff)が一致することがテストで実証されている(計画§2完了条件)
+- [x] 各実行にrun_id / trace_id(T-012)が付与され、Evidence Storeから読み出せる
 
 ## 検証方法・根拠
 

@@ -20,9 +20,9 @@ skillの運用metadata(§28.2「残すもの」)を保持するregistry形式を
 
 ## DoD
 
-- [ ] registry index(例: `qa-skills/registry.yaml`)の形式が定義され、§28.2「残すもの」の全項目を保持できる(schemaで検証)
-- [ ] template skill(T-021)のentryが登録され、validationをpassする(テストで実証)
-- [ ] registry entryとskillディレクトリの整合(存在チェック、version一致)を検証するチェックがある
+- [x] registry index(例: `qa-skills/registry.yaml`)の形式が定義され、§28.2「残すもの」の全項目を保持できる(schemaで検証)
+- [x] template skill(T-021)のentryが登録され、validationをpassする(テストで実証)
+- [x] registry entryとskillディレクトリの整合(存在チェック、version一致)を検証するチェックがある
 
 ## 検証方法・根拠
 

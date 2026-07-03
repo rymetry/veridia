@@ -20,10 +20,10 @@ Reporting Foundationの2 artifactのJSON Schemaを定義する。計画§2完了
 
 ## DoD
 
-- [ ] `schemas/quality-analytics-snapshot.schema.json` / `release-readiness-report.schema.json` が存在し、`allOf` でartifact-baseを継承している
-- [ ] QualityAnalyticsSnapshotがcoverage / execution / evidence / costを集約できる(サンプルinstanceで確認)
-- [ ] ReleaseReadinessReportがpass/warn/block・理由・evidence_refsを表現でき、有効サンプルinstanceがschema validationを通る(テストで実証。計画§2完了条件)
-- [ ] 各schemaについて、不正サンプルがfailするテストがある
+- [x] `schemas/quality-analytics-snapshot.schema.json` / `release-readiness-report.schema.json` が存在し、`allOf` でartifact-baseを継承している
+- [x] QualityAnalyticsSnapshotがcoverage / execution / evidence / costを集約できる(サンプルinstanceで確認)
+- [x] ReleaseReadinessReportがpass/warn/block・理由・evidence_refsを表現でき、有効サンプルinstanceがschema validationを通る(テストで実証。計画§2完了条件)
+- [x] 各schemaについて、不正サンプルがfailするテストがある
 
 ## 検証方法・根拠
 

@@ -1,7 +1,7 @@
 # Phase 1: CRUD/業務アプリMVP 実装計画
 
 対応: North Star §20 Phase 1、§21 Week 2〜4、§31(最終提案)
-status: not_started(正本は [00-overview.md](00-overview.md))
+Phaseレベルstatusの正本: [00-overview.md](00-overview.md)(status値はここに複製しない。変更ルール3)
 前提: Phase 0の完了条件がすべて満たされていること。
 
 ## 1. 目的と対象

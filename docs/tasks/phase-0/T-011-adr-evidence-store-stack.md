@@ -20,9 +20,9 @@ OQ-3(Artifact DB / object storeのローカル開発構成)をADRで確定する
 
 ## DoD
 
-- [ ] `docs/decisions/` にADRが存在し、statusがaccepted(人間の承認を得る)
-- [ ] metadata DB / object storageのローカル開発構成と、Trace StoreとEvidence Storeの分離方針(§15.1)の実装方式が決定されている
-- [ ] `docs/plan/00-overview.md` のOQ-3行が決定済み(ADRへのリンク付き)に更新されている
+- [x] `docs/decisions/` にADRが存在し、statusがaccepted(人間の承認を得る)
+- [x] metadata DB / object storageのローカル開発構成と、Trace StoreとEvidence Storeの分離方針(§15.1)の実装方式が決定されている
+- [x] `docs/plan/00-overview.md` のOQ-3行が決定済み(ADRへのリンク付き)に更新されている
 
 ## 検証方法・根拠
 

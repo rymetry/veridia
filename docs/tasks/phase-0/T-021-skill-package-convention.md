@@ -21,9 +21,9 @@ Phase 1でskill群を実装するための規約を確定する。§7.1のpackag
 
 ## DoD
 
-- [ ] `qa-skills/_template/` に§7.1のpackage構造に対応するskeletonが存在する(構成要素の網羅は§7.1のディレクトリ図との突き合わせで確認。各ファイルは構造を示すstubで可)
-- [ ] manifestの必須項目セットを§7.2の例から定義してschema化し(§7.2は例示のため、どのkeyを必須とするかはschema側で確定させる)、templateのmanifestがvalidationをpassする(テストで実証)
-- [ ] `qa-skills/README.md` にtemplateの使い方(新規skill作成手順)が追記されている
+- [x] `qa-skills/_template/` に§7.1のpackage構造に対応するskeletonが存在する(構成要素の網羅は§7.1のディレクトリ図との突き合わせで確認。各ファイルは構造を示すstubで可)
+- [x] manifestの必須項目セットを§7.2の例から定義してschema化し(§7.2は例示のため、どのkeyを必須とするかはschema側で確定させる)、templateのmanifestがvalidationをpassする(テストで実証)
+- [x] `qa-skills/README.md` にtemplateの使い方(新規skill作成手順)が追記されている
 
 ## 検証方法・根拠
 

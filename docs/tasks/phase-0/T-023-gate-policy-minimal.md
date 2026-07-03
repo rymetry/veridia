@@ -21,10 +21,10 @@ versioned configとしてのGatePolicy最小版を作る。gate実行(wiring)は
 
 ## DoD
 
-- [ ] `policies/gate-policy.yaml` が存在し、§17.1の各gateについて段階(shadow / warn / block)と閾値を定義している
-- [ ] block段階は初期4 gate(source grounding / oracle / evidence / security)のみで、他はshadowまたはwarnになっている(§17.0。テストで検証)
-- [ ] policy fileを検証するschemaがあり、validationがテストでpassする
-- [ ] `policies/CHANGELOG.md` に初版entry(version、日付、根拠として§17.0参照)が記録されている
+- [x] `policies/gate-policy.yaml` が存在し、§17.1の各gateについて段階(shadow / warn / block)と閾値を定義している
+- [x] block段階は初期4 gate(source grounding / oracle / evidence / security)のみで、他はshadowまたはwarnになっている(§17.0。テストで検証)
+- [x] policy fileを検証するschemaがあり、validationがテストでpassする
+- [x] `policies/CHANGELOG.md` に初版entry(version、日付、根拠として§17.0参照)が記録されている
 
 ## 検証方法・根拠
 

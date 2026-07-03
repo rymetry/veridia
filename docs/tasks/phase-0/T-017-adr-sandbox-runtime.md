@@ -20,9 +20,9 @@ sandboxの実現方式(container構成、reset方式、deterministic clockの実
 
 ## DoD
 
-- [ ] `docs/decisions/` にADRが存在し、statusがaccepted(人間の承認を得る)
-- [ ] container構成・環境reset方式・時刻固定の実現手段が決定されている
-- [ ] §5.7の要件表のうちPhase 0で実装する範囲(計画§6: 完了条件を満たす最小実装)がADR内で明示されている
+- [x] `docs/decisions/` にADRが存在し、statusがaccepted(人間の承認を得る)
+- [x] container構成・環境reset方式・時刻固定の実現手段が決定されている
+- [x] §5.7の要件表のうちPhase 0で実装する範囲(計画§6: 完了条件を満たす最小実装)がADR内で明示されている
 
 ## 検証方法・根拠
 
