@@ -10,6 +10,7 @@ from pathlib import Path
 from sandbox_env.errors import SandboxEnvError
 from sandbox_env.hashing import state_hash
 from sandbox_env.lifecycle import create, destroy, reset
+from sandbox_env.seeding import apply_seed
 
 EXIT_OK = 0
 EXIT_INPUT_ERROR = 2
@@ -39,6 +40,14 @@ def _build_parser() -> argparse.ArgumentParser:
         _state_hash,
         "Print the normalized sandbox state hash.",
     )
+    seed_parser = subparsers.add_parser(
+        "seed",
+        help="Apply a fixture seed manifest to a sandbox root.",
+        description="Apply a fixture seed manifest to a sandbox root.",
+    )
+    seed_parser.add_argument("root", type=Path, help="Sandbox root path")
+    seed_parser.add_argument("seed_manifest", type=Path, help="Fixture seed manifest JSON path")
+    seed_parser.set_defaults(func=_seed)
 
     return parser
 
@@ -74,4 +83,13 @@ def _reset(args: argparse.Namespace) -> int:
 
 def _state_hash(args: argparse.Namespace) -> int:
     print(state_hash(args.root))
+    return EXIT_OK
+
+
+def _seed(args: argparse.Namespace) -> int:
+    result = apply_seed(args.root, args.seed_manifest)
+    print(f"seeded: {result.root}")
+    print(f"seed: {result.seed_path}")
+    print(f"directories: {result.directory_count}")
+    print(f"files: {result.file_count}")
     return EXIT_OK

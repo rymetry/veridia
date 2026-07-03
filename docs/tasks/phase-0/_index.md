@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-07-03 / 全23タスク(not_started: 5 / done: 18)
+生成日: 2026-07-03 / 全23タスク(not_started: 4 / done: 19)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -24,7 +24,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-016](T-016-tool-gateway-audit-log.md) | tool-gateway | done | T-014, T-015 | Tool Gateway audit log(trace_id付きtool call保存) |
 | [T-017](T-017-adr-sandbox-runtime.md) | sandbox | done | - | ADR起票 sandbox実現方式決定 |
 | [T-018](T-018-sandbox-ephemeral-env.md) | sandbox | done | T-002, T-017 | sandbox ephemeral env(作成・破棄・reset) |
-| [T-019](T-019-sandbox-fixture-seed.md) | sandbox | not_started | T-018 | fixture seed機構とdeterministic clock |
+| [T-019](T-019-sandbox-fixture-seed.md) | sandbox | done | T-018 | fixture seed機構とdeterministic clock |
 | [T-020](T-020-sandbox-runner-determinism.md) | sandbox | not_started | T-013, T-019 | sandbox test runner最小版と決定性検証 |
 | [T-021](T-021-skill-package-convention.md) | skill-registry-gatepolicy | not_started | T-002 | skill package規約とtemplate skeleton |
 | [T-022](T-022-skill-registry-metadata.md) | skill-registry-gatepolicy | not_started | T-021 | skill registry metadata定義 |
