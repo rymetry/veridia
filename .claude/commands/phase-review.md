@@ -15,6 +15,7 @@ Phase $ARGUMENTS の完了判定を行ってください。
    - 計画mdの完了条件チェックリストに根拠リンクを記入する
    - `docs/plan/00-overview.md` のPhase statusを `done` へ更新する
    - 00-overviewの§29 完成形DoD追跡表のうち、このPhaseで進んだ項目を根拠付きで更新する
+   - 00-overviewの「Phase全体像(§20のview)」表がNorth Star §20と乖離していないか照合し、乖離があれば表を§20に合わせて更新する
    - Phaseを通じた学びを `docs/knowledge/learning-log.md` へ記録する(North Star改訂に値する発見があれば `northstar-proposal` 型で起票する)
 6. 次Phaseの計画作成(`/plan-phase`)を提案する
 

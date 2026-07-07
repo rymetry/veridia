@@ -1,11 +1,12 @@
 # epic ID → _index の「epic別内訳」表に出す表示ラベル。
 # 出力順もこの並び順に従う。
 #
-# source of truth はこのファイルではなく docs/plan/phase-0-foundation.md §3
-# (ワークストリーム分割表)。ここはその表示ラベルの写しであり、§3が改訂されたら
-# 追随する。_indexはあくまで集約ビュー(AGENTS.md変更ルール3)。
+# source of truth はこのファイルではなく各Phase計画mdのepic分解表
+# (Phase 0: docs/plan/phase-0-foundation.md §3、Phase 1: docs/plan/phase-1-crud-mvp.md §5)。
+# ここはその表示ラベルの写しであり、計画mdが改訂されたら追随する。
+# _indexはあくまで集約ビュー(AGENTS.md変更ルール3)。0件のepicは_indexに出力されない。
 #
-# order: 表示順。label: 「epic別内訳」表の左列に出す文字列。
+# id: epic ID。label: 「epic別内訳」表の左列に出す文字列。表示順は記述順。
 
 [[epic]]
 id = "artifact-schema"
@@ -26,3 +27,33 @@ label = "sandbox(WS-D)"
 [[epic]]
 id = "skill-registry-gatepolicy"
 label = "skill-registry-gatepolicy(WS-E)"
+
+# --- Phase 1(source of truth: docs/plan/phase-1-crud-mvp.md §5 Epic分解)---
+
+[[epic]]
+id = "phase1-setup"
+label = "phase1-setup(着手前提)"
+
+[[epic]]
+id = "grounding-oracle"
+label = "grounding-oracle(Week 2)"
+
+[[epic]]
+id = "test-asset-reuse"
+label = "test-asset-reuse(Week 2)"
+
+[[epic]]
+id = "modeling-generation"
+label = "modeling-generation(Week 3)"
+
+[[epic]]
+id = "quality-intelligence"
+label = "quality-intelligence(Week 3)"
+
+[[epic]]
+id = "execution-evidence"
+label = "execution-evidence(Week 4)"
+
+[[epic]]
+id = "reporting-gate"
+label = "reporting-gate(Week 4)"
