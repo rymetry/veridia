@@ -30,7 +30,7 @@ class TaskEntry:
 
     Attributes:
         task_id: frontmatterの task_id(例: T-002)。
-        epic: frontmatterの epic ID(計画§3のepic ID)。
+        epic: frontmatterの epic ID(各Phase計画mdのepic分解表のID)。
         status: docs/tasks/README.md のstatus値のいずれか。
         blocked_by: 依存タスクIDの並び(空可)。
         title: H1見出しから "T-NNN: " プレフィックスを除いた表示タイトル。

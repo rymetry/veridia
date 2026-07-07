@@ -69,6 +69,8 @@ allowed-tools: Bash(codex:*), Bash(uv:*), Bash(git:*), Read, Edit, Write
 7. **[監督者] 完了処理**: run-taskフロー手順6〜7を実施する(「記録」節に記録先リンクを記入(なければ「なし」)、`status: done` へ更新、`_index.md` 再生成)。再生成後の整合確認に `--check` を使う場合はAGENTS.mdの `--generated-on` 注記に従う(省略すると日付差の偽陽性が出る)。Codexサンドボックスの残渣(repo内に作られた `.uv-cache` 等のキャッシュ。自己ignoreされ `git status` に出ないことがある)が残っていれば削除する
 8. **[監督者] コミット&push**: タスクで変更・追加したファイルのみを明示的にステージし(`git add -A` 禁止)、conventional commits形式(例: `feat: T-xxx <内容>`)でコミットしてpushする
 
+注: 本コマンドは実装(Codex)と検収(Claude監督者)が別モデル・別コンテキストのため、run-taskフロー手順8の `/task-review` 導線は必須ではない(監督者検収が独立検収を兼ねる)。論理密度の高いタスクでセカンドオピニオンが欲しい場合のみ、完了報告に `/task-review <task_id>` を添える。
+
 ## ルール
 
 - run-taskフローの「ルール」節を全て適用する

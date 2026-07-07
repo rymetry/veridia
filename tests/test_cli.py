@@ -49,6 +49,10 @@ def test_generate_sorts_by_task_id_and_counts_epics(tmp_path: Path) -> None:
     # epic別内訳。
     assert "| artifact-schema(WS-A) | 2 |" in text
     assert "| sandbox(WS-D) | 1 |" in text
+    # 0件のepic(このfixtureでは未使用のtool-gateway等)は行を出さない。
+    # epic_labels.tomlは全Phaseのepicを持つため、0件を出すとPhase間でノイズになる。
+    assert "tool-gateway" not in text
+    assert "phase1-setup" not in text
 
 
 def test_generate_sorts_task_ids_numerically(tmp_path: Path) -> None:

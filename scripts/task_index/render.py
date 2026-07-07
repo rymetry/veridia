@@ -19,7 +19,7 @@ _INTRO = (
 )
 _TABLE_HEADER = "| task_id | epic | status | blocked_by | タイトル |"
 _TABLE_SEP = "|---|---|---|---|---|"
-_EPIC_TABLE_HEADER = "| epic(計画§3) | タスク数 |"
+_EPIC_TABLE_HEADER = "| epic(計画mdのepic分解) | タスク数 |"
 _EPIC_TABLE_SEP = "|---|---:|"
 _EPIC_SECTION_HEADING = "## epic別内訳"
 _FOOTER = (
@@ -65,7 +65,11 @@ def _epic_breakdown_rows(
     entries: tuple[TaskEntry, ...],
     epic_labels: tuple[EpicLabel, ...],
 ) -> list[str]:
-    """epic別内訳テーブルの行を作る。未知epicは黙殺せずValueError。"""
+    """epic別内訳テーブルの行を作る。未知epicは黙殺せずValueError。
+
+    epic_labels.toml は全Phaseのepicを持つため、対象ディレクトリで0件のepicは
+    行を出さない(Phase間のノイズ防止)。
+    """
     counts = Counter(entry.epic for entry in entries)
     known = {label.epic_id for label in epic_labels}
     unknown = set(counts) - known
@@ -73,7 +77,11 @@ def _epic_breakdown_rows(
         raise ValueError(
             f"epic_labels.toml に定義の無いepicが使われている: {', '.join(sorted(unknown))}"
         )
-    return [f"| {label.label} | {counts[label.epic_id]} |" for label in epic_labels]
+    return [
+        f"| {label.label} | {counts[label.epic_id]} |"
+        for label in epic_labels
+        if counts[label.epic_id] > 0
+    ]
 
 
 def render_index(

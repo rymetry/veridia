@@ -32,7 +32,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 
 ## epic別内訳
 
-| epic(計画§3) | タスク数 |
+| epic(計画mdのepic分解) | タスク数 |
 |---|---:|
 | artifact-schema(WS-A) | 10 |
 | evidence-trace-store(WS-B) | 4 |

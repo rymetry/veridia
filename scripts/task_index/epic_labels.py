@@ -1,6 +1,6 @@
 """epic ID → 表示ラベルのマッピングをTOML設定から読む。
 
-設定の実体は epic_labels.toml。source of truth は計画§3(AGENTS.md変更ルール3)。
+設定の実体は epic_labels.toml。source of truth は各Phase計画mdのepic分解表(AGENTS.md変更ルール3)。
 """
 
 from __future__ import annotations
