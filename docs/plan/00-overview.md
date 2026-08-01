@@ -18,6 +18,13 @@ North Star: [`../qa-agent-strategy.md`](../qa-agent-strategy.md)(§20 実装ロ�
 
 Phase 2以降の目的・完了条件は§20を参照(ここに複製しない)。詳細計画は各Phase着手の直前に作成する。
 
+## Phase横断の計画
+
+| 計画 | 内容 |
+|---|---|
+| [sqk-core-integration.md](sqk-core-integration.md) | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) の取り込み方針(2レーン構造。開発エージェントレーンは配線済み、runtimeレーンはPhase 1以降) |
+| [trace-run-id-design.md](trace-run-id-design.md) | run_id / trace_id / span_id の設計 |
+
 ## Phase全体像(§20のview)
 
 全Phaseの1行オリエンテーション。**正本はNorth Star §20**(詳細・完了条件はそちらを開く)。この表は航行用のviewであり、§20が改訂されたら追随させる。Phase構成自体も実運用の学びで変わり得る(その場合は変更ルール1の手順で§20を改訂してからここを更新する)。乖離防止のため、各Phaseの `/phase-review` 時にこの表と§20の整合確認をチェック項目に含める。
@@ -69,6 +76,7 @@ veridiaが汎用QAプラットフォームである根拠は§3.1(対象範囲)�
 | OQ-3 | Evidence Storeの具体構成(DB / object storage) | 決定済み(2026-07-03) | [ADR-0003](../decisions/adr-0003-evidence-trace-store-stack.md) |
 | OQ-4 | 対象プロダクトのrepo接続方法(Source Connector最小構成) | Phase 1着手前 | phase-1 §7 |
 | OQ-5 | LLM skill実行方式(provider / model / 呼び出し境界 / コスト管理) | Phase 1最初期(skill実装開始前) | phase-1 §7 |
+| OQ-KB-* | sqk-coreの取り込み(連携方式・互換性チェック・runtime mapping境界) | KB-1〜3は決定済み(2026-08-01)。KB-4/5は未決 | [sqk-core-integration.md §7](sqk-core-integration.md) / [ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md) |
 
 ## 運用メモ
 

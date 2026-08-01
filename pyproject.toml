@@ -45,7 +45,8 @@ src = [
     "trace_ids",
 ]
 # models/ は schemas/ からの生成物(gen_models.py)。手で保守しないためlint/format対象外。
-extend-exclude = ["models"]
+# vendor/ は外部リポジトリのsubmodule(ADR-0005)。原本を書き換えないためlint/format対象外。
+extend-exclude = ["models", "vendor"]
 
 [tool.ruff.lint]
 # E/F: pyflakes+pycodestyle, I: import順, UP: pyupgrade, B: bugbear, SIM: simplify
