@@ -7,3 +7,6 @@ __pycache__/
 .veridia/
 .env
 .coverage
+
+# macOS Finderの生成物
+.DS_Store
