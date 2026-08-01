@@ -26,7 +26,7 @@ sqk-coreの内容をveridiaへ複製しない。SKILL.md原本をveridia固有�
 
 - **リポジトリ名**: `software-quality-knowledge-base` は削除済み。sqk-coreとして再構築されている
 - **成果物の状態**: 「v3調査索引(一次情報確認・正規化が未完了)」を前提にしていたが、正典化は完了している(SKILL.md blueprint 16ユニット、I/O JSON Schema 18件、derived knowledge、domain canon)
-- **待ち条件**: 「sqk-core側の実装が完了するまでveridiaでは具体実装タスクを作らない」という条件は、sqk-coreのD-012(全ウェーブ完了)およびD-013(取り込みインターフェース確定)をもって**解除済み**
+- **待ち条件**: 「sqk-core側の実装が完了するまでveridiaでは具体実装タスクを作らない」という条件は、sqk-coreのD-012(土台先行のベース作成と再評価ループ。ROADMAP 5節の全ウェーブ完了はそのウェーブ4追記に記録)およびD-013(取り込みインターフェース確定)をもって**解除済み**
 
 ## 2. 取り込みインターフェース
 
@@ -60,6 +60,11 @@ sqk-coreをsubmodule `vendor/sqk-core` としてSHA固定でcheckoutし、`.clau
 
 このレーンはveridiaのruntime挙動に影響しない。開発時のエージェント支援のみに使う。
 
+注意点:
+
+- **スキル名の衝突**: sqk-coreの `code-review` は、Claude Code組み込みの `/code-review` コマンドや他プラグインの同名スキルと名前が重なる。曖昧な場合はプラグイン接頭辞付きの名前で明示的に指定する
+- **submodule未取得時**: `.claude/skills` はdangling symlinkになり、スキルは1つも発見されない(エラーにはならない)。clone直後は `git submodule update --init --recursive` を実行する(AGENTS.mdのコマンド表参照)。veridiaのCIはsubmoduleをcheckoutしないが、lint・testはvendorを対象外にしているため影響しない
+
 ### 3.2 runtimeレーン(Phase 1以降)
 
 `qa-skills/` へのmappingは本ファイルの範囲外(方針のみ記す)。**対応表はPhase 1の各skill実装タスクに着手する時点で作る**。先に机上で対応表を確定させない。
@@ -83,7 +88,7 @@ mapping時の制約(sqk-core D-012の実行境界):
 固定SHAの付け替えが更新にあたる。手順:
 
 1. `vendor/sqk-core` を目標SHAへ進め、submoduleの参照を更新する
-2. 取り込み先checkoutで `uv run scripts/check.py` がgreenであることを確認する
+2. 取り込み先checkoutで `uv run scripts/check.py` がgreenであることを確認する(sqk-coreローカルの検証機構であり取り込み面には含まれない。SHA更新時の健全性確認としてのみ使う)
 3. 利用中スキルのfrontmatter `version` の差分を確認する(semver。majorが上がっていれば利用側の見直しが必要)
 4. 本ファイル §3.1 の固定SHA記載を更新する
 
