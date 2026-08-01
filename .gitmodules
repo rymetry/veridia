@@ -1,0 +1,3 @@
+[submodule "vendor/sqk-core"]
+	path = vendor/sqk-core
+	url = git@github.com:rymetry/sqk-core.git
