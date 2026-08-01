@@ -1,4 +1,4 @@
-# ADR-0005: sqk-core の連携方式(git submodule による SHA 固定)
+# ADR-0006: sqk-core の連携方式(git submodule による SHA 固定)
 
 - status: accepted
 - date: 2026-08-01

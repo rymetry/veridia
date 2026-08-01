@@ -30,7 +30,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `change_impact_generator/` | ChangeImpactSpec候補生成CLI | 稼働中 |
 | `scripts/` | 生成・整合性チェック用repo-local tooling | 稼働中 |
 | `tests/` | pytestによるcontract / regression test | 稼働中 |
-| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0005](docs/decisions/adr-0005-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md)) | 稼働中 |
+| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0006](docs/decisions/adr-0006-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md)) | 稼働中 |
 | `.claude/` | このリポジトリでの開発用エージェント設定。`.claude/skills` は `vendor/sqk-core/skills` へのsymlink | - |
 
 **注意(名前空間):** `qa-skills/` はQAプラットフォームが実行時に使うskill package(§7.1)。`.claude/skills/`(このリポジトリを開発するエージェント自身の拡張)とは別物(ADR-0001参照。§7.1の `skills/` から改名した逸脱の記録あり)。sqk-coreの16スキルは現在この `.claude/skills/` レーンでのみ消費している。`qa-skills/` へのmappingはPhase 1のskill実装時に判断する([統合方針 §3](docs/plan/sqk-core-integration.md))。

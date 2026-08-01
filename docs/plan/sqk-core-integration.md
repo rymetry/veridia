@@ -118,7 +118,7 @@ mapping時の制約(sqk-core D-012の実行境界):
 | ID | 事項 | status / 決定タイミング |
 |---|---|---|
 | OQ-KB-1 | 最初の取り込み対象 | **決定済み(2026-08-01)**: sqk-core D-013に従いリポジトリ全体をcheckoutする。個別成果物の選別はしない |
-| OQ-KB-2 | 連携方式(submodule / package / vendored copy / local path) | **決定済み(2026-08-01)**: git submoduleでSHA固定。[ADR-0005](../decisions/adr-0005-sqk-core-integration-method.md) |
+| OQ-KB-2 | 連携方式(submodule / package / vendored copy / local path) | **決定済み(2026-08-01)**: git submoduleでSHA固定。[ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md) |
 | OQ-KB-3 | SHA更新時の互換性チェック | 方針決定済み(2026-08-01): §4の手順。自動化の要否はPhase 1のruntimeレーン着手時に判断する |
 | OQ-KB-4 | 初回consumer対象の `quality_profile` | Phase 2以降の計画時 |
 | OQ-KB-5 | generic platform contract と profile-specific adapter の境界 | runtimeレーンの具体タスク化前(Phase 1のskill実装タスク着手時) |
