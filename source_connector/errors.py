@@ -24,6 +24,10 @@ class GitCommandError(SourceConnectorError):
     """Raised when a git invocation fails. Carries git's own stderr."""
 
 
+class TrustLevelError(SourceConnectorError):
+    """Raised when a source is labelled with a trust level the contract does not allow."""
+
+
 class DiffParseError(SourceConnectorError):
     """Raised when git produced output the diff parser could not read.
 

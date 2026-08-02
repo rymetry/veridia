@@ -1,0 +1,115 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/source-map.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "SourceMap",
+  "description": "W1(source grounding)の出力artifact(North Star §6.2)。1つのsourceと、そこから取り出した項目の対応を表す。以降の全artifactの `source_refs` の根拠になる。\n\n**ArtifactBaseを継承する。** producerは source-grounding skill(LLM)であり、`confidence` も `created_by` の `skill` / `model` も真実を供給できる。非継承の例外(RunRecord / GateDecision)には該当しない。契約の正本がveridia側にある理由は[ADR-0009](../docs/decisions/adr-0009-contract-ownership-boundary.md)(source groundingはveridiaのingestion固有の関心で、sqk-coreの11工程モデルの外側にある)。\n\n**§6.2からの差分と理由:**\n- §6.2の例は `version` にcommit shaを入れているが、ArtifactBaseの `version` はartifact自身のsemverであり意味が衝突する。sourceの版は `source_version` として別に持つ\n- `extracted_items[].artifact_id` を必須にしない。W1時点では対応するartifact(REQ-nnn等)がまだ存在せず(生成はW2)、必須にするとproducerにID捏造を強いる(learning-log「契約の必須度は最初のproducerのDoDと突き合わせる」)。位置を示す `span` の方を必須にする — 位置を言えない項目はgroundingになっていない\n- `extracted_items` は空配列を許す。「このsourceからは何も取り出せなかった」は正当な結果であり、捏造よりはるかに良い\n\n**`trust_level` のauthorityはこのschemaの外側にある([ADR-0009](../docs/decisions/adr-0009-contract-ownership-boundary.md) Decision 2)。** 値域はここで縛れるが「誰が言ったか」は縛れない。値は ingestion 層(`source_connector`)が供給し、skillの出力値は採用せず上書きする。信頼ラベルの生成主体とそれを信頼する主体が同じなら、gateは自己申告で迂回できる(learning-log 2026-08-02)。",
+  "type": "object",
+  "allOf": [{ "$ref": "artifact-base.schema.json" }],
+  "$defs": {
+    "extractedItem": {
+      "type": "object",
+      "properties": {
+        "span": {
+          "type": "string",
+          "minLength": 1,
+          "description": "sourceの中の位置(例: src/order_service.ts:L120-L180)。形式は対象により異なるため文字列として持ち、patternでは縛らない"
+        },
+        "artifact_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "この項目から生成された/生成されるartifactの識別子(例: REQ-001)。W1時点では未確定でありうるためoptional"
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "この項目の抽出に対する自己申告confidence。較正されていないためgate条件の入力にしない(§6.1と同じ注意)"
+        }
+      },
+      "required": ["span"],
+      "additionalProperties": false,
+      "description": "sourceから取り出した1項目"
+    }
+  },
+  "properties": {
+    "artifact_type": {
+      "const": "source_map",
+      "description": "artifact種別(§6.1の規約により const で固定)"
+    },
+    "source_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "sourceのdomain識別子(例: SRC-001)"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": ["git_commit_range", "github_pr", "document"],
+      "description": "sourceの種別。Phase 1のproducerは `git_commit_range` のみ(OQ-4でローカルgitのcommit rangeに限定した)。`github_pr` は呼び出し側がPR URLを恒久refとして添える場合、`document` は関連ドキュメントを取り込む場合。種別を足すのはschema semverの変更"
+    },
+    "uri": {
+      "type": "string",
+      "minLength": 1,
+      "description": "sourceの所在(例: internal://github/org/repo/pull/123、git://veridia/<sha>...<sha>)"
+    },
+    "source_version": {
+      "type": "string",
+      "minLength": 1,
+      "description": "sourceの版(commit SHA等)。§6.2の `version` に相当するが、ArtifactBaseの `version`(artifact自身のsemver)との意味衝突を避けて改名した。可変ref(HEAD等)ではなく解決済みの識別子を入れる — でないと後から同じsourceを再現できない"
+    },
+    "trust_level": {
+      "type": "string",
+      "enum": ["trusted", "untrusted", "external"],
+      "description": "sourceの信頼区分(§6.2)。**値の決定主体は ingestion 層であり、このartifactのproducer(skill)ではない**(ADR-0009 Decision 2)。設定で対象repoを指す行為そのものが信頼の付与であるため、`source_connector` が供給しruntimeが上書きする"
+    },
+    "extracted_items": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/extractedItem" },
+      "description": "このsourceから取り出した項目。空配列を許す(何も取り出せなかったことは正当な結果であり、捏造よりよい)"
+    }
+  },
+  "required": [
+    "source_id",
+    "source_type",
+    "uri",
+    "source_version",
+    "trust_level",
+    "extracted_items"
+  ],
+  "unevaluatedProperties": false,
+  "examples": [
+    {
+      "artifact_id": "SRC-20260802-0001",
+      "artifact_type": "source_map",
+      "version": "0.1.0",
+      "source_refs": [
+        "git://veridia/6795b10a0000000000000000000000000000000a...52322d9b0000000000000000000000000000000b"
+      ],
+      "created_by": {
+        "agent": "qa-analyst",
+        "skill": "source-grounding",
+        "model": "claude-opus-5"
+      },
+      "confidence": 0.78,
+      "status": "draft",
+      "requires_human_review": true,
+      "trace_id": "trace-20260802-0001",
+      "created_at": "2026-08-02T09:00:00Z",
+      "source_id": "SRC-001",
+      "source_type": "git_commit_range",
+      "uri": "git://veridia/6795b10a0000000000000000000000000000000a...52322d9b0000000000000000000000000000000b",
+      "source_version": "52322d9b0000000000000000000000000000000b",
+      "trust_level": "trusted",
+      "extracted_items": [
+        {
+          "span": "source_connector/connector.py:L60-L98",
+          "artifact_id": "REQ-001",
+          "confidence": 0.82
+        },
+        {
+          "span": "source_connector/settings.py:L30-L52"
+        }
+      ]
+    }
+  ]
+}

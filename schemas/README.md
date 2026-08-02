@@ -9,6 +9,7 @@ North Star §6(成果物契約)のJSON Schema実装を置く。Phase 0 WS-A(`doc
     - `run-record.schema.json`(ADR-0007の監査ラッパー) — artifactではなくartifactを運ぶ入れ物であり、`confidence` がrunに対して意味を持たない
     - `gate-decision.schema.json`(§6.24) — producerが決定的な評価器であり、`confidence` に加えて `created_by` の `skill` / `model` にも対応する値が無い
   - 上記2件は §6.1 の必須field(特に `confidence`)見直し提案に対するproducer証拠でもある。3件目が出たら見直しを起票する
+- **どの契約をveridiaが定義するかは列挙ではなく原則で判定する**([ADR-0009](../docs/decisions/adr-0009-contract-ownership-boundary.md))。sqk-coreが正本を持つのはテストプロセス成果物(11工程モデルの工程0〜8)。veridiaが正本を持つのは実行の記録・監査 / 判定と統制 / 取り込み境界のいずれかで、かつsqk-coreに相当物が無いもの。ADR-0007の4件の列挙は採択時点の適用結果であり閉じた集合ではない
 - 新しいschemaを継承なしで足す場合は、どの必須fieldをproducerが供給できないのかをschemaの `description` に書き、契約テストで非継承を固定する(`tests/test_run_record_schema.py::TestSchemaItself::test_does_not_inherit_artifact_base` が参照実装)
 - `$ref` は相対ファイル名(例: `"artifact-base.schema.json"`)で書く。`$id` は解決可能なURLではないため、検証する側は全schemaを `$id` で引ける `referencing.Registry` を組んでvalidatorへ渡すこと(registryなしの単体 `Draft202012Validator(schema)` は `Unresolvable` で失敗する)。参照実装: `tests/test_core_spec_schemas.py` の `build_registry()`
 - 開いたobject(追加fieldを許す)は `"additionalProperties": true` を省略せず明示する。省略すると生成Pydanticモデルが `extra=ignore` になり追加fieldを黙って捨てる(learning-log 2026-07-02参照)。**例外**: 合成用のbase schema(`artifact-base.schema.json`)には宣言しない — base側で `additionalProperties: true` を宣言すると全propertyが「評価済み」になり、子schemaの `unevaluatedProperties: false` による閉鎖が無効化されるため

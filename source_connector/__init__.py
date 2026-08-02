@@ -18,12 +18,24 @@ from source_connector.errors import (
     RepositoryNotFoundError,
     RevisionRangeError,
     SourceConnectorError,
+    TrustLevelError,
 )
-from source_connector.settings import REPO_LABEL_ENV, REPO_PATH_ENV, TargetRepository
+from source_connector.settings import (
+    REPO_LABEL_ENV,
+    REPO_PATH_ENV,
+    REPO_TRUST_ENV,
+    TargetRepository,
+)
+from source_connector.trust import DEFAULT_TRUST_LEVEL, trust_levels
+
+TRUST_LEVELS = trust_levels()
 
 __all__ = [
+    "DEFAULT_TRUST_LEVEL",
     "REPO_LABEL_ENV",
     "REPO_PATH_ENV",
+    "REPO_TRUST_ENV",
+    "TRUST_LEVELS",
     "ChangeSet",
     "DiffParseError",
     "GitCommandError",
@@ -32,4 +44,6 @@ __all__ = [
     "SourceConnector",
     "SourceConnectorError",
     "TargetRepository",
+    "TrustLevelError",
+    "trust_levels",
 ]

@@ -13,18 +13,29 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from source_connector.errors import RepositoryNotFoundError
+from source_connector.trust import DEFAULT_TRUST_LEVEL, validate_trust_level
 
 REPO_PATH_ENV = "VERIDIA_TARGET_REPO_PATH"
 REPO_LABEL_ENV = "VERIDIA_TARGET_REPO_LABEL"
+REPO_TRUST_ENV = "VERIDIA_TARGET_REPO_TRUST_LEVEL"
 GIT_DIR_NAME = ".git"
 
 
 @dataclass(frozen=True)
 class TargetRepository:
-    """A local git repository to read changes from, plus the name used in refs."""
+    """A local git repository to read changes from, plus how it is labelled.
+
+    `trust_level` is configuration, never something a downstream skill decides
+    (ADR-0009 Decision 2). It defaults to trusted because pointing the configuration
+    at a repository is the act of trusting it; anything else must say so explicitly.
+    """
 
     path: Path
     label: str
+    trust_level: str = DEFAULT_TRUST_LEVEL
+
+    def __post_init__(self) -> None:
+        validate_trust_level(self.trust_level)
 
     @classmethod
     def from_env(cls, env: Mapping[str, str] | None = None) -> TargetRepository:
@@ -32,6 +43,7 @@ class TargetRepository:
 
         Raises:
             RepositoryNotFoundError: the path variable is unset or blank.
+            TrustLevelError: the configured trust level is not one the contract allows.
         """
         source = os.environ if env is None else env
         raw_path = source.get(REPO_PATH_ENV, "")
@@ -42,7 +54,8 @@ class TargetRepository:
             )
         path = Path(raw_path).expanduser().resolve()
         label = source.get(REPO_LABEL_ENV, "").strip() or path.name
-        return cls(path=path, label=label)
+        trust_level = source.get(REPO_TRUST_ENV, "").strip() or DEFAULT_TRUST_LEVEL
+        return cls(path=path, label=label, trust_level=trust_level)
 
     def resolved_path(self) -> Path:
         """Return the repository root, checking it is really a git repository.
