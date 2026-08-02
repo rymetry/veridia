@@ -32,6 +32,7 @@ src = [
     "artifact_validator",
     "change_impact_generator",
     "evidence_store",
+    "gate_evaluator",
     "sandbox_runner",
     "sandbox_env",
     "scripts",

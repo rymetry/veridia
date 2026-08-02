@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-08-02 / 全33タスク(not_started: 31 / done: 2)
+生成日: 2026-08-02 / 全34タスク(not_started: 31 / done: 3)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -39,6 +39,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-054](T-054-gate-decision-enforcement.md) | reporting-gate | not_started | T-032, T-036, T-043, T-049, T-053 | GateDecision schema + gate段階運用の配線(W18) |
 | [T-055](T-055-dashboard-minimal.md) | reporting-gate | not_started | T-053 | Dashboard最小版(§18.4 Step 1〜2) |
 | [T-056](T-056-e2e-workflow-verification.md) | reporting-gate | not_started | T-046, T-051, T-054, T-055 | W1〜W19 end-to-end実証と完了条件の記帳 |
+| [T-057](T-057-gate-decision-source-grounding.md) | reporting-gate | done | - | GateDecision契約 + source_grounding gateのblock配線(T-054の先行部分) |
 
 ## epic別内訳
 
@@ -50,6 +51,6 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | modeling-generation(Week 3) | 5 |
 | quality-intelligence(Week 3) | 5 |
 | execution-evidence(Week 4) | 5 |
-| reporting-gate(Week 4) | 5 |
+| reporting-gate(Week 4) | 6 |
 
 全タスクdone後もPhase完了とは判定しない(計画mdの完了条件チェックリストが正、AGENTS.md変更ルール6)。
