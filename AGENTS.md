@@ -16,10 +16,9 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `docs/operations/` | 運用runbook・RACI・KPI運用(Phase 1以降に整備) | 予定地 |
 | `docs/archive/` | 旧版・レビュー文書 | - |
 | `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec。**正本**(ADR-0002) | 稼働中 |
-| `models/` | `schemas/` からの生成Pydanticモデル。手編集禁止(`scripts/gen_models.py` で再生成) | 稼働中 |
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
-| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI | 稼働中 |
+| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**: veridia契約(`schemas/`、`artifact_type` でルーティング)と sqk-core契約(`vendor/sqk-core/schemas/`、`schema_ref` でルーティング。[ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
 | `evidence_store/` | ExecutionEvidenceのmetadata/blob保存adapter | 稼働中 |
 | `trace_store/` | redacted trace recordの保存adapter | 稼働中 |
 | `trace_ids/` | run_id / trace_id / span_id生成 | 稼働中 |
@@ -30,7 +29,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `change_impact_generator/` | ChangeImpactSpec候補生成CLI | 稼働中 |
 | `scripts/` | 生成・整合性チェック用repo-local tooling | 稼働中 |
 | `tests/` | pytestによるcontract / regression test | 稼働中 |
-| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0006](docs/decisions/adr-0006-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md)) | 稼働中 |
+| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0006](docs/decisions/adr-0006-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md))。**テストプロセス成果物の契約はここが正本**であり、veridiaは再定義しない([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md))。テストがこのsubmoduleに依存するため、CIでも取得する | 稼働中 |
 | `.claude/` | このリポジトリでの開発用エージェント設定。`.claude/skills` は `vendor/sqk-core/skills` へのsymlink | - |
 
 **注意(名前空間):** `qa-skills/` はQAプラットフォームが実行時に使うskill package(§7.1)。`.claude/skills/`(このリポジトリを開発するエージェント自身の拡張)とは別物(ADR-0001参照。§7.1の `skills/` から改名した逸脱の記録あり)。sqk-coreの16スキルは現在この `.claude/skills/` レーンでのみ消費している。`qa-skills/` へのmappingはPhase 1のskill実装時に判断する([統合方針 §3](docs/plan/sqk-core-integration.md))。
@@ -61,10 +60,10 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 
 - 言語: Python 3.12+(開発は `.python-version` で 3.12 に固定)
 - パッケージ/環境/ツール管理: **uv**(依存・仮想環境・Pythonツールチェーンを単一ツールで管理。Poetryは非採用。理由: 各コマンドが単一で完結し、Python本体もuvが自動取得するため個人開発の初期セットアップが最短)
-- schema lib: Pydantic v2(コード側の型付き表現)+ jsonschema(生JSON artifactのcontract検証)。**正本は `schemas/*.schema.json`**(ADR-0002)
+- schema lib: jsonschema(生JSON artifactのcontract検証)。**正本は `schemas/*.schema.json`**(ADR-0002)。Pydantic v2は依存として残るがartifact契約には使わない(ADR-0008)
 - test: pytest / lint・format: ruff
-- schema→Pydantic生成: datamodel-code-generator(`scripts/gen_models.py` が配線。生成物は `models/` にコミットし、CIで再生成→diff無しを検証。T-003で整備)
-- CI: GitHub Actions(`.github/workflows/ci.yml`)。push(main)/ PRで test / lint / format / _index差分 / 生成モデル差分を検証する
+- schema→Pydantic生成は行わない(ADR-0008で `models/` と生成パイプラインを廃止)。artifact契約の検証は `artifact_validator` が `schemas/*.schema.json` を直接読む
+- CI: GitHub Actions(`.github/workflows/ci.yml`)。push(main)/ PRで test / lint / format / _index差分を検証する。submoduleを取得し `VERIDIA_REQUIRE_SQK=1` でsqk-core契約テストのskipを失敗に変える(ADR-0007)
 
 コマンド(リポジトリルートで実行):
 
@@ -78,8 +77,6 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | format検証(CI用) | `uv run ruff format --check .` |
 | _index再生成 | `uv run python scripts/regen_task_index.py docs/tasks/<phase>` |
 | _index差分検証(CI用) | `uv run python scripts/regen_task_index.py docs/tasks/<phase> --check --generated-on <コミット済み_index.mdの生成日>` |
-| Pydanticモデル再生成(schemas→models) | `uv run python scripts/gen_models.py` |
-| 生成モデル差分検証(CI用) | `uv run python scripts/gen_models.py --check` |
 
 注: `_index差分検証` の `--generated-on` 既定は実行日のため、省略すると生成翌日以降は内容が最新でも日付差で不一致(false drift)になる。CIの実配線は `.github/workflows/ci.yml` 参照(コミット済み `_index.md` から生成日を抽出して渡す)。
 

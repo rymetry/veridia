@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from pathlib import Path
 from typing import Any
 
-from json_schema_errors import error_key, issue_from_error
+from json_schema_errors import issue_from_error, relevant_errors
 from jsonschema.exceptions import ValidationError
 
 from artifact_validator.errors import ArtifactValidationError, ArtifactValidationIssue
@@ -30,7 +30,7 @@ def validate_artifact(artifact: Mapping[str, Any]) -> None:
     validator = validator_for_artifact_type(artifact_type)
     issues = tuple(
         _artifact_issue_from_error(error)
-        for error in _relevant_errors(validator.iter_errors(artifact))
+        for error in relevant_errors(validator.iter_errors(artifact))
     )
     if issues:
         raise ArtifactValidationError(issues)
@@ -86,13 +86,3 @@ def _artifact_issue_from_error(error: ValidationError) -> ArtifactValidationIssu
         schema_path=issue.schema_path,
         validator=issue.validator,
     )
-
-
-def _relevant_errors(errors: Any) -> tuple[ValidationError, ...]:
-    all_errors = tuple(errors)
-    specific_errors = tuple(
-        error for error in all_errors if error.validator != "unevaluatedProperties"
-    )
-    if specific_errors:
-        return tuple(sorted(specific_errors, key=error_key))
-    return tuple(sorted(all_errors, key=error_key))

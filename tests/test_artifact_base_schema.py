@@ -104,9 +104,9 @@ class TestValidInstances:
         self, validator: Draft202012Validator
     ) -> None:
         # draft 2020-12のformatは既定で注釈のみのため、timezone無しのnaive datetimeも
-        # 生JSON検証では通る。契約意図はRFC 3339(timezone必須)で、生成Pydanticモデル側は
-        # AwareDatetimeで拒否する(test_gen_models.py参照)。生JSON側でformatを強制するかは
-        # validator実装(T-008)で決める — この挙動が変わったらこのテストが検知する
+        # 素の生JSON検証では通る。契約意図はRFC 3339(timezone必須)であり、その強制は
+        # artifact_validator の FormatChecker が担う(T-008。tests/test_artifact_validator.py の
+        # timezone無しcreated_atのケース)。この挙動が変わったらこのテストが検知する
         validator.validate({**make_valid_artifact(), "created_at": "2026-07-02T10:00:00"})
 
     def test_domain_specific_extra_fields_are_allowed(

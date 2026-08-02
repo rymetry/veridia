@@ -23,6 +23,14 @@ class ArtifactValidationIssue:
         }
 
 
+class SqkSchemaError(RuntimeError):
+    """Raised when a sqk-core schema cannot be located or parsed.
+
+    Distinct from `ArtifactValidationError`: the artifact was never checked because
+    the contract itself was unavailable (missing submodule, unknown `schema_ref`).
+    """
+
+
 class ArtifactValidationError(ValueError):
     """Raised when an artifact fails contract validation."""
 

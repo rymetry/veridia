@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-08-02 [northstar-proposal] North Star §6 は「veridiaが定義する契約の一覧」ではなく「必要な契約の一覧」に改める必要がある
+
+- 事実(何を観測したか): §6 の27契約(§6.2〜6.27)に**テスト設計系の成果物が1つも含まれていない**ことを確認した。§4.3 は W9 → `TestArchitectureSpec`、W12 → `TestDesignSpec` / `TestAsset` を出力すると定め、§7.3 のskill表も同じ出力を宣言しているのに、§6 に契約定義が無い。結果として [phase-1計画 §4](../plan/phase-1-crud-mvp.md) は W9 を「独立ステップとしては実装しない」と省略していた。一方 sqk-core は同じ工程を ISO/IEC/IEEE 29119-2 / JSTQB v4.0 接地の11工程モデルとして正典化しており、該当契約(`test-architecture-element` / `condition-assignment-matrix` / `test-case` / `coverage-item` 等)をschema + fixture付きで保有していた。さらに sqk-core 側の文書は「TAD を入れないと、agent が分析結果から突然テストケースを生成する動きになりやすい」とアンチパターンとして明示しており、phase-1計画のW9省略はこれに該当していた。
+- 学び(なぜ・何を変えるべきか): §6 が「veridiaが全契約を定義する」前提で書かれているため、外部正典が既に持っている契約まで自前定義の対象に見え、未定義18件が停滞の要因になっていた。契約は「必要かどうか」と「誰が正本を持つか」を分けて扱うべきで、正本がsqk-coreにあるものはveridiaで再定義しない。ただし**変更ルール1に従い、North Star本文は本エントリでは改訂しない**。Phase 1 の実運用(工程4→5→6を実際に通すこと)を経てから改訂を判断する。
+- アクション(変更したもの・リンク): [ADR-0007](../decisions/adr-0007-sqk-core-contract-consumption.md) を採択し、テストプロセス成果物の契約は sqk-core を正本として直接消費すると決定(veridiaが定義する契約は27→4)。実装は [artifact_validator/sqk_schema_store.py](../../artifact_validator/sqk_schema_store.py) / [sqk_validator.py](../../artifact_validator/sqk_validator.py)。regression guard: `tests/test_sqk_schema_validation.py`(sqk-coreの全18契約×valid/invalid fixture 36件)。North Star改訂は未承認のため未実施。
+
+## 2026-08-02 [process-learning] スキルにTADを実施させると、直後に書いた自分のコードのテスト空白が出る(全緑・カバレッジ97%を通り抜けていた2件)
+
+- 事実(何を観測したか): sqk-core の `test-architecture-design` スキルを、その1時間前に自分で実装した機能(sqk-core契約の境界検証)に対して実行した。出力は4つのTAE(schema解決の防御 / envelope・payload二層検証 / 契約網羅回帰 / エラー位置精度)と10件のDTC割当で、`gate_status: passed-with-risks`。リスク→厚みの変換根拠(§4.2のリスクレベル別ポリシー)が各TAEの `rationale` に付いていた。この出力が指摘した未検証項目2件は実在した — (1) 複数 artifact × 複数 item での エラーJSONPath の精度(既存テストは `artifacts[0].items[0]` のみ)、(2) envelope構造が壊れている場合にpayload検証をスキップする挙動(実装済み・テスト無し)。いずれも 82テスト全緑・カバレッジ97% を通り抜けていた。テストを追加したところ**2件とも即passした**(バグではなく検証欠落)。
+- 学び(なぜ・何を変えるべきか): 2026-07-03のエントリ「全緑テスト+80%超カバレッジでも実行時異常系・セキュリティ境界のテスト空白は残る」と同じ構造が、規模の小さい新規実装(214行)でも再現した。カバレッジは「その行を通ったか」しか見ないため、**分岐の組合せ(artifact index × item index)と早期returnの副作用(検証しないこと)は測れない**。TADを工程として挟むと、テストを「書いた順」ではなく「構造の切り口」から数え直すことになり、この種の空白が可視化される。テスト生成の前にTADを置く理由は網羅率ではなく、この数え直しにある。
+- アクション(変更したもの・リンク): 指摘2件に対応するテストを追加(`test_paths_stay_precise_across_multiple_artifacts_and_items` / `test_broken_envelope_skips_payload_validation`)。TAD出力そのものは [artifact_validator の validate_handoff_envelope](../../artifact_validator/sqk_validator.py) で検証してVALIDを確認済み(知識→分析→契約準拠成果物→検証のループが初めて一周した)。
+
+## 2026-08-02 [process-learning] sqk-core の検証ハーネスは envelope 内包payloadを schema_ref に対して検証していない(上流起票案件)
+
+- 事実(何を観測したか): veridia側で `handoff-envelope` の内包artifactを `artifacts[].schema_ref` に対して検証する実装を入れた直後、sqk-core の**valid fixture** `schemas/tests/fixtures/handoff-envelope/valid/risk-analysis-handoff.json` が落ちた。内包する RiskItem が `{id, statement}` の2fieldしか持たず、`risk-item.schema.json` が要求する `category` / `likelihood` / `impact` / `treatment` を欠いていた。原因を追うと、sqk-core の `scripts/validate-schemas.sh` は各fixtureを**自分のschemaに対してのみ**検証しており、`handoff-envelope.artifacts[].items` が制約なしのarrayであるため、内包payloadは宣言した `schema_ref` に対して一度も検証されない構造だった。
+- 学び(なぜ・何を変えるべきか): envelope方式は「transport構造」と「payload契約」の2層になるが、片方だけを検証するハーネスでは層の継ぎ目が無検査になる。これはveridia固有の問題ではなく、envelopeを受け取る全consumer(claude-code / gpts / codex / veridia)が同じ穴を踏む。したがって**修正はveridia側ではなくsqk-coreの検証ハーネスに入れるべき**で、veridia側の境界検証は二重防御として残す。分離リポジトリ構成の価値はここに出る(マージしていればveridia1件の修正で終わり、他3プラットフォームには届かない)。
+- アクション(変更したもの・リンク): 事実を `tests/test_sqk_schema_validation.py::TestHandoffEnvelope::test_envelope_payload_gap_in_sqk_core_fixture` に固定(docstringにSHA更新後の削除条件を明記)。sqk-coreへ [Issue #48](https://github.com/rymetry/sqk-core/issues/48) を起票([統合方針 §5](../plan/sqk-core-integration.md) の経路。フィードバックループの初回稼働)。
+
 ## 2026-08-01 [process-learning] 検証は作業ツリーではなくコミット済み内容に対して行う(git addの部分失敗を握り潰したcommitが検証を素通りした)
 
 - 事実(何を観測したか): sqk-core統合の作業で、`git add <複数パス> 2>/dev/null` の引数に既にrename済みの旧ファイル名が混ざっており、git がpathspecエラーでコマンド全体を中断した。`2>/dev/null` でエラーが見えず、`git status --short` の出力も staged(1列目)と unstaged(2列目)を読み違えたため、気づかないままcommit・pushした。結果、commitにはrename(旧内容のまま)・submodule・symlinkしか入っておらず、文書本文の改訂と関連3ファイルの変更が欠落した。その後の検証(SHA記載の一致確認・リンク切れ確認・pytest)はすべて**作業ツリー**を読んでいたため全green となり、欠落を検出できなかった。PR の diff を見て初めて発覚した。

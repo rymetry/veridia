@@ -230,25 +230,7 @@ class TestExecutionEvidenceValues:
         validator_for(SCHEMA_FILENAME).validate(instance)
 
 
-class TestGeneratedModels:
-    def _model_class(self) -> type:
-        import importlib
-
-        from gen_models import module_name_for
-
-        module_name = module_name_for(SCHEMA_FILENAME).removesuffix(".py")
-        module = importlib.import_module(f"models.{module_name}")
-        return getattr(module, TITLE)
-
-    def test_generated_model_accepts_schema_example(self) -> None:
-        example = load_schema(SCHEMA_FILENAME)["examples"][0]
-        model = self._model_class()(**example)
-        assert model.artifact_type == ARTIFACT_TYPE or (
-            getattr(model.artifact_type, "value", None) == ARTIFACT_TYPE
-        )
-
-    def test_generated_log_model_preserves_extra_fields(self) -> None:
-        example = load_schema(SCHEMA_FILENAME)["examples"][0]
-        model = self._model_class()(**example)
-        dumped = model.model_dump()
-        assert dumped["logs"][0].get("redaction_policy") == "secrets-and-pii-redacted"
+# 生成Pydanticモデルのテストは ADR-0008 で models/ とともに削除した。
+# example の妥当性は TestValidInstances::test_schema_embedded_examples_pass、
+# 開いたobjectのfield保持は TestExecutionEvidenceValues::test_log_entry_preserves_extra_fields
+# が生JSON側でカバーする。

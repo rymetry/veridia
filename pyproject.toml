@@ -15,13 +15,10 @@ dependencies = [
 
 [dependency-groups]
 # 開発用ツール。uvのdependency-group機能で管理する(PEP 735)。
-# datamodel-code-generatorはADR-0002が定めるschema→Pydantic生成CLI(配線はscripts/gen_models.py)。
-# 生成物のbyte単位diffをCIで検証するため範囲を狭く保つ(決定性の実保証はuv.lock)。
-# 範囲を広げる/uv lock --upgradeする際はmodels/の生成差分を必ずレビューする。
+# schema→Pydantic生成(datamodel-code-generator)はADR-0008で廃止した。
 dev = [
     "pytest>=8.2,<9",
     "ruff>=0.5,<1",
-    "datamodel-code-generator>=0.66.3,<0.67",
     # pyyamlはskill manifest(qa-skills/*/manifest.yaml §7.1)のテスト内パースで直接import
     # する(推移的依存に頼らない明示宣言。T-021)。実行時利用が必要になったら本体依存へ昇格する。
     "pyyaml>=6,<7",
@@ -44,9 +41,8 @@ src = [
     "trace_store",
     "trace_ids",
 ]
-# models/ は schemas/ からの生成物(gen_models.py)。手で保守しないためlint/format対象外。
-# vendor/ は外部リポジトリのsubmodule(ADR-0005)。原本を書き換えないためlint/format対象外。
-extend-exclude = ["models", "vendor"]
+# vendor/ は外部リポジトリのsubmodule(ADR-0006)。原本を書き換えないためlint/format対象外。
+extend-exclude = ["vendor"]
 
 [tool.ruff.lint]
 # E/F: pyflakes+pycodestyle, I: import順, UP: pyupgrade, B: bugbear, SIM: simplify
@@ -54,7 +50,7 @@ select = ["E", "F", "I", "UP", "B", "SIM"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-# "." はリポジトリルート(生成パッケージ models/ を解決するため。__init__.py はT-004から生成物)。
+# "." はリポジトリルート(artifact_validator / tool_gateway 等のトップレベルパッケージを解決する)。
 # tests/__init__.py の有無やimport-modeに依存させない明示指定。
 pythonpath = ["scripts", "."]
 addopts = "-ra"

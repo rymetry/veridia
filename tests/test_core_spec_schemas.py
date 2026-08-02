@@ -389,63 +389,10 @@ class TestOracleSpecValues:
         with pytest.raises(ValidationError):
             validator_for(case.schema_filename).validate(instance)
 
-    def test_generated_model_does_not_enforce_unique_oracle_type(self) -> None:
-        # uniqueItems(生JSONでは重複reject = test_duplicate_oracle_type_fails)は
-        # dcgがPydantic制約へ変換しないため、生成モデルでは重複が通る。既知の非対称
-        # として挙動を固定する(dcgが変換するようになったらこのテストが検知する)
-        import importlib
 
-        from gen_models import module_name_for
-
-        case = _case("OracleSpec")
-        module_name = module_name_for(case.schema_filename).removesuffix(".py")
-        oracle_spec = importlib.import_module(f"models.{module_name}")
-        example = load_schema(case.schema_filename)["examples"][0]
-        model = oracle_spec.OracleSpec(**{**example, "oracle_type": ["state", "state"]})
-        assert [t.value for t in model.oracle_type] == ["state", "state"]
-
-    def test_generated_signal_model_preserves_extra_fields(self) -> None:
-        # signalはtype毎に異なるfield(query_ref / endpoint / topic等)を持つ開いたobject。
-        # 生成PydanticモデルがPydantic既定(extra=ignore)のままだとround-tripでsignalの
-        # 中身が黙って消える(silent data loss)ため、extra=allowで保持されることを検証する
-        import importlib
-
-        from gen_models import module_name_for
-
-        case = _case("OracleSpec")
-        module_name = module_name_for(case.schema_filename).removesuffix(".py")
-        oracle_spec = importlib.import_module(f"models.{module_name}")
-        example = load_schema(case.schema_filename)["examples"][0]
-        model = oracle_spec.OracleSpec(**example)
-        dumped = model.model_dump()
-        assert dumped["signals"][0].get("query_ref") == "order_status_check"
-
-
-@pytest.mark.parametrize("case", SPEC_CASES, ids=CASE_IDS)
-class TestGeneratedModels:
-    """schemas/ からの生成Pydanticモデルがコアspecでも成立することのsmoke検証。"""
-
-    def _model_class(self, case: SpecCase) -> type:
-        import importlib
-
-        from gen_models import module_name_for
-
-        module_name = module_name_for(case.schema_filename).removesuffix(".py")
-        module = importlib.import_module(f"models.{module_name}")
-        return getattr(module, case.title)
-
-    def test_generated_model_accepts_schema_example(self, case: SpecCase) -> None:
-        example = load_schema(case.schema_filename)["examples"][0]
-        model = self._model_class(case)(**example)
-        assert model.artifact_type == case.artifact_type or (
-            getattr(model.artifact_type, "value", None) == case.artifact_type
-        )
-
-    def test_generated_model_rejects_missing_domain_field(self, case: SpecCase) -> None:
-        from pydantic import ValidationError as PydanticValidationError
-
-        example = load_schema(case.schema_filename)["examples"][0]
-        first_required = sorted(case.domain_required)[0]
-        broken = {k: v for k, v in example.items() if k != first_required}
-        with pytest.raises(PydanticValidationError):
-            self._model_class(case)(**broken)
+# 生成Pydanticモデルに対するテスト(既知の非対称性の pin と smoke 検証)は ADR-0008 で
+# models/ とともに削除した。契約検証はすべて生JSON側が担う:
+#   uniqueItems      -> test_duplicate_oracle_type_fails
+#   開いたobjectの保持 -> test_signal_extra_fields_pass
+#   example の妥当性  -> TestValidInstances::test_schema_embedded_examples_pass
+#   domain required   -> TestDomainRequiredMissing::test_missing_domain_required_field_fails

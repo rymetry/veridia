@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 from artifact_validator import ArtifactValidationError, validate_artifact
+from test_asset_index_generator.generator import generate_test_asset_index
 from trace_ids import TRACE_ID_RE
 
 
@@ -86,3 +88,61 @@ def test_cli_still_returns_input_error_for_missing_repository_path(
 
     assert main([str(tmp_path / "missing-repo"), str(tmp_path / "out.json")]) == 2
     assert "error:" in capsys.readouterr().err
+
+
+class TestRepositoryNameDerivation:
+    """`scope.repository` はディレクトリ名ではなくgitリポジトリ名を記録する。
+
+    worktree はリポジトリ名ではなく worktree 名のディレクトリに置かれるため、basename を
+    そのまま使うと artifact に誤ったリポジトリ名が入る。
+    """
+
+    def _init_repo(self, root: Path) -> None:
+        root.mkdir(parents=True, exist_ok=True)
+        (root / "tests").mkdir()
+        (root / "tests" / "test_sample.py").write_text("def test_x() -> None: ...\n")
+        for args in (
+            ["init", "-q"],
+            ["-c", "user.email=t@example.com", "-c", "user.name=t", "commit", "-qm", "init"],
+        ):
+            if args[0] == "init":
+                subprocess.run(["git", "-C", str(root), *args], check=True)
+                continue
+            subprocess.run(["git", "-C", str(root), "add", "-A"], check=True)
+            subprocess.run(["git", "-C", str(root), *args], check=True)
+
+    def test_worktree_records_the_repository_name_not_the_worktree_name(
+        self, tmp_path: Path
+    ) -> None:
+        main_repo = tmp_path / "my-repo"
+        self._init_repo(main_repo)
+        worktree = tmp_path / "wt" / "feature-branch-slug"
+        subprocess.run(
+            ["git", "-C", str(main_repo), "worktree", "add", "-q", "-b", "wt1", str(worktree)],
+            check=True,
+        )
+
+        artifact = generate_test_asset_index(worktree)
+
+        assert artifact["scope"]["repository"] == "my-repo"
+
+    def test_plain_checkout_records_the_repository_name(self, tmp_path: Path) -> None:
+        repo = tmp_path / "plain-repo"
+        self._init_repo(repo)
+
+        assert generate_test_asset_index(repo)["scope"]["repository"] == "plain-repo"
+
+    def test_non_git_directory_falls_back_to_the_directory_name(self, tmp_path: Path) -> None:
+        plain = tmp_path / "not-a-repo"
+        (plain / "tests").mkdir(parents=True)
+        (plain / "tests" / "test_sample.py").write_text("def test_x() -> None: ...\n")
+
+        assert generate_test_asset_index(plain)["scope"]["repository"] == "not-a-repo"
+
+    def test_explicit_repository_name_wins(self, tmp_path: Path) -> None:
+        repo = tmp_path / "plain-repo"
+        self._init_repo(repo)
+
+        artifact = generate_test_asset_index(repo, repository_name="explicit-name")
+
+        assert artifact["scope"]["repository"] == "explicit-name"
