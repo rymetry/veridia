@@ -9,6 +9,8 @@ Phase 1(`docs/plan/phase-1-crud-mvp.md`)で初めてLLM駆動のskillを実装�
 
 ここで言うskillは `qa-skills/` 配下のskill package(§7.1)である。開発エージェント自身の拡張である `.claude/skills/` とは別物(AGENTS.md「注意(名前空間)」/ ADR-0001)。
 
+**追記(2026-08-02):** 本ADRの起票後に [ADR-0007](adr-0007-sqk-core-contract-consumption.md) が採択され、テストプロセス成果物の**契約**はsqk-coreが正本になった。本ADRが決めるのは契約ではなく**推論の呼び出し方**であり、両者は独立する。ただしsqk-coreのSKILL.md本文をruntimeでどう渡すかについては、Decision 5の隔離要件と両立しない経路があるため末尾の追記を参照すること。
+
 この決定に直接依存するタスク:
 
 - T-027: skill実行基盤最小版。LLM呼び出し境界・リトライ方針・trace記録内容が本ADRに従う
@@ -77,8 +79,9 @@ ADR-0003 / ADR-0004と揃えたうえで、LLM特有の軸を加える。
 | `trace_store/` | 許可event typeは `tool_call` / `error` / `run_metrics` の3種のみ。`TraceRecord` で構造化payloadを置けるのは `redacted_args`(Mapping)だけで、`result_summary` / `error_summary` は文字列 |
 | `trace_ids/` | `IdFactory.new_trace_context()` とchild context生成。`TraceContext.artifact_fields()` がartifactへ `trace_id` を伝播する |
 | `evidence_store/` | **ExecutionEvidence専用**であり、任意の入力artifactをimmutable保存する契約ではない |
+| `run_store/` | (2026-08-02追加、ADR-0007)skill実行1回分のhandoff-envelopeを監査項目付きで保存する `RunRecord` 層。`status: draft` を持ち、保存前に envelope とrecordの両方を検証する。**artifact単位のaddressingは持たない**(P-1の追記参照) |
 | `artifact_validator/` | `schemas/*.schema.json`(正本)による検証。`ArtifactValidationError` が `field_path` / `schema_path` / `validator` をmachine-readableに返す |
-| `schemas/artifact-base.schema.json` | `confidence` / `source_refs` を含む10 fieldが必須。`minLength` / `minItems` / `pattern` / `minimum`・`maximum` / `format` を使い、`additionalProperties` は意図的に開いている |
+| `schemas/artifact-base.schema.json` | `confidence` / `source_refs` を含む10 fieldが必須(2026-08-02: artifactではない `RunRecord` は継承しない例外を設けた。ADR-0007 / schemas/README.md)。`minLength` / `minItems` / `pattern` / `minimum`・`maximum` / `format` を使い、`additionalProperties` は意図的に開いている |
 
 ## Options
 
@@ -550,6 +553,19 @@ LLMへの入力は対象プロダクトのPR diff・コード・コメント・�
 
 P-1は本ADRの採択可否には影響しないが、**T-027の着手前に解決が必要**である。P-2〜P-4は各タスクの着手時に解消できる。
 
+**追記(2026-08-02): P-1の前提がADR-0007 / `run_store` で変わった。**
+
+本ADRの起票後に [ADR-0007](adr-0007-sqk-core-contract-consumption.md) が採択され、`run_store/`(`RunRecord`)が実装された。P-1に対する現状は次のとおりで、**hard gateとしての重さは下がったが閉じてはいない**。
+
+| P-1の要求 | 現状 |
+|---|---|
+| skill出力をimmutableに保存・読み出しする層 | **充足**(`RunStore.save` / `.get`。保存前にenvelope・recordの両方を検証し、落ちた場合はファイルを残さない) |
+| `status: draft` での保存 | **充足**(`RunRecord.status` はproducerが常に `draft` を出す) |
+| `requires_human_review` フラグ | **未充足**(`RunRecord` はArtifactBaseを継承せず本fieldを持たない。`status` で代替できるかはT-031の設計判断) |
+| artifact単位のaddressing(`RequirementSpec` を `artifact_id` で引く) | **未充足。かつ必要性が自明でなくなった** — ADR-0007以降、artifactはsqk-coreのhandoff-envelope内に入って届く。レビュー(T-031)と集約(T-052)がrun単位で足りるならaddressingは不要である |
+
+したがってP-1のオーナー判断事項は「汎用Artifact Storeを作るか」から、**「human reviewと集約をrun単位で行うか、artifact単位で行うか」**へ置き換わる。前者なら追加実装は `requires_human_review` 相当の1 fieldで済み、後者になった時点でartifact index層を足す。**T-027着手前に決めるべきはこの1点**であり、新しい永続化境界を先に設計する必要はなくなった。
+
 ## Consequences
 
 ### 良い影響
@@ -612,3 +628,34 @@ token数はCLIの出力から取得し、クライアント側で推定しない
 - `claude`(Claude Code CLI)がallowlist記載のバージョンで導入済みで、サブスクリプション認証が済んでいること(検証済み: 2.1.207)
 - `codex`(codex-cli)がallowlist記載のバージョンで導入済みで、認証が済んでいること(検証済み: 0.145.0)
 - CIでは実LLMを呼ばないため、これらはCIの前提に含めない
+
+---
+
+## 追記(2026-08-02): Decision 5の隔離要件は、sqk-core SKILL.mdの「発見機構による読み込み」と両立しない
+
+[ADR-0007](adr-0007-sqk-core-contract-consumption.md) 採択後に判明した、本ADRとの構造的な緊張を事実として記録する。Decisionの変更ではなく、T-027への申し送りである。
+
+### 事実
+
+runtimeレーンでsqk-coreのSKILL.mdを使う場合、Claude Codeの発見機構(`.claude/skills` 配下の探索)に載せる経路は、本ADRのDecision 5と両立しない。
+
+| Decision | 内容 | 帰結 |
+|---|---|---|
+| 5.1 | cwdをveridiaリポジトリの外・指示ファイルを持つ祖先の外に置く | `.claude/skills -> vendor/sqk-core/skills` のsymlinkは探索範囲に入らない |
+| 5.2 | claude側で設定ソース・plugin・**skill**・MCPの読み込みを抑止する | 仮にcwdが合っても、skillの読み込み自体を止めている |
+
+つまり **hermetic実行とskill発見機構は同時に成立しない。** これは実装ミスではなく、両方の要件が正しく働いた結果である(発見機構はcwd文脈に依存する仕組みであり、Decision 5はまさにcwd文脈の遮断を要件にしている)。
+
+### 帰結
+
+runtimeレーンでsqk-coreのSKILL.md本文を使うなら、**発見機構ではなくveridiaが明示的に読み込み、application promptの指示部として渡す**ことになる。これはDecision 5.3(指示部の配置)とDecision 7(指示部は全文記録)の枠内に収まり、追加のDecisionを要しない。むしろ次の利点がある。
+
+- どのSKILL.md本文を渡したかがtraceに全文残る(発見機構経由だとCLI内部で解決され、veridiaは何が読まれたかを知らない)
+- 固定SHAのsubmoduleから読むため、実行時に読まれた版が一意に定まる(`RunRecord.sqk_core.commit` と整合する)
+
+### T-027への申し送り
+
+- sqk-core SKILL.mdは `vendor/sqk-core/skills/<name>/SKILL.md` からveridiaが読み、指示部として渡す。CLIのskill発見機構には依存しない
+- `.claude/skills` のsymlinkは**開発エージェントレーン専用**であり続ける([統合方針 §3](../plan/sqk-core-integration.md) の2レーン構造のとおり)。runtimeレーンがこのsymlinkに依存しないことを、T-027のDoDで明示的に確認する
+- SKILL.mdが `knowledge_refs` で参照する文書(`docs/agent-ecosystem/` 等)をどこまで展開して渡すかは、prompt長とのトレードオフになる。T-027で実測して決める
+
