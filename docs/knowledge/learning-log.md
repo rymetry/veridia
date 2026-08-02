@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-02 [process-learning] 実在repoを触るテストは、そのrepoの「履歴の深さ」に暗黙依存する(CIはshallow clone)
+
+- 事実(何を観測したか): T-026で設定差し替えを実証するテストが、実在repo(veridia自身と `vendor/sqk-core`)に対して `HEAD~1`〜`HEAD` のrangeを読んでいた。ローカルは全履歴なので緑、**CIは `actions/checkout` の既定が shallow clone のため `fatal: Needed a single revision` で2件落ちた**。手元で緑・CIで赤という典型形だが、原因はコードでも依存でもなく「テストが実行環境の履歴の深さという環境状態に依存していた」ことである。
+- 学び(なぜ・何を変えるべきか): 直し方は2つあり、選択がそのままテストの意味を決める。(a) CIのfetch-depthを深くする、(b) テストを履歴非依存にする。**(a)はテストの都合でCI設定を変える方向で、しかも「そのテストが何を実証したいのか」が曖昧なまま残る。** 当該テストが実証したいのは「設定を差し替えると別のrepoが読まれる」ことであって、履歴を遡れることではない。実証したい性質に対して余計な前提(履歴の深さ)を持ち込んでいたのが誤りなので(b)を選ぶ。**一般則: 実在の外部資源を触るテストでは、その資源について「実証したい性質」に必要な最小限の前提しか置かない。** diffの中身の検証のように履歴が要るものは、テスト内で作った一時repoに担わせる。
+- アクション(変更したもの・リンク): `TestConfigurationIsSwappable` は実在repoに対して `HEAD` 単独しか使わない(理由をクラスdocstringに明記)。diff内容の検証は `tmp_path` 上に作る実repoが担当する。修正後、実際に `--depth 1` のshallow cloneを作って `HEAD..HEAD` が通り `HEAD~1` が `RevisionRangeError` になることを確認した(空diffへ退化しない)。記録: [T-026](../tasks/phase-1/T-026-source-connector-minimal.md)。
+
 ## 2026-08-02 [process-learning] 共有parserの「入力エラー」は、別の呼び出し側では正当な結果でありうる(T-026)
 
 - 事実(何を観測したか): T-026のSource ConnectorでT-010の `parse_unified_diff` を再利用したところ、**変更が無いcommit range**(`HEAD..HEAD`)で `ValueError: diff did not contain any 'diff --git' file entries` が出た。同関数はCLI(diffファイルを渡す)向けに書かれており、そこでは空入力は確かに利用者のミスである。しかしconnectorから見れば「baseとheadの間に変更が無い」は正当な結果であり、例外にすべきではない。

@@ -229,15 +229,21 @@ class TestFailuresAreNotSwallowed:
 
 
 class TestConfigurationIsSwappable:
-    """対象固有の接続情報がコードに埋まっていないことの実証(T-026 DoD)。"""
+    """対象固有の接続情報がコードに埋まっていないことの実証(T-026 DoD)。
+
+    実在repoを読む本クラスのテストは **HEAD 単独**しか使わない。`HEAD~1` を使うと
+    履歴の深さに依存し、shallow cloneのCIで落ちる(実際に落とした)。ここで実証したい
+    のは「設定を差し替えると別のrepoが読まれる」ことであって履歴の読み出しではない。
+    diff内容の検証は上のtmp_path上のrepoが担う。
+    """
 
     @pytest.mark.skipif(not SQK_CORE_ROOT.exists(), reason="submodule vendor/sqk-core が未取得")
     def test_the_same_code_reads_a_second_repository(self, target_repo: Path) -> None:
         first = SourceConnector(repository=TargetRepository(path=target_repo, label="target"))
         second = SourceConnector(repository=TargetRepository(path=SQK_CORE_ROOT, label="sqk-core"))
 
-        first_change = first.fetch_change("HEAD~1", "HEAD")
-        second_change = second.fetch_change("HEAD~1", "HEAD")
+        first_change = first.fetch_change("HEAD", "HEAD")
+        second_change = second.fetch_change("HEAD", "HEAD")
 
         assert first_change.head_sha != second_change.head_sha
         assert first_change.source_refs[0].startswith("git://target/")
@@ -247,10 +253,10 @@ class TestConfigurationIsSwappable:
         # OQ-2の決定(対象=veridia自身)がこのconnectorで実際に成立すること
         connector = SourceConnector(repository=TargetRepository(path=REPO_ROOT, label="veridia"))
 
-        change = connector.fetch_change("HEAD~1", "HEAD")
+        change = connector.fetch_change("HEAD", "HEAD")
 
         assert len(change.head_sha) == 40
-        assert change.source_refs
+        assert change.source_refs[0].startswith("git://veridia/")
 
 
 class TestNoCredentialsAreHandled:
