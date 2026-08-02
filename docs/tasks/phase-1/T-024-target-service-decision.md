@@ -2,8 +2,8 @@
 task_id: T-024
 epic: phase1-setup
 plan_ref: phase-1-crud-mvp.md#1-目的と対象
-status: not_started
-owner:
+status: done
+owner: rym
 blocked_by:
 ---
 
@@ -20,14 +20,33 @@ Phase 1でW1〜W19を通す対象サービス・機能(1サービス・1〜2機�
 
 ## DoD
 
-- [ ] 対象サービスと対象機能(1〜2個)が決定され、計画 `phase-1-crud-mvp.md` §1の「未確定(OQ-2)」箇所が実際の対象の記載に置き換わっている(ADR不要、計画§7の指示どおり計画本文へ記載)
-- [ ] 計画§1の選定基準4項目(状態遷移が明確 / DB・API・eventの観測点にアクセス可能 / P0・P1要求が存在 / 固有知識をconnector設定・`docs/domain/` へ隔離可能)それぞれについて、対象がどう満たすかが§1に1行ずつ記載されている
-- [ ] `docs/plan/00-overview.md` の未決事項表でOQ-2が「決定済み(日付)」になっている
-- [ ] 対象サービスのドメイン知識の置き場として `docs/domain/` 配下に対象サービスのファイルが作成され、機能概要・主要状態・観測点(DB/API/event/log)の初期メモが記載されている(redaction必須: secret / PII / 本番データの生値を書かない)
+- [x] 対象サービスと対象機能(1〜2個)が決定され、計画 `phase-1-crud-mvp.md` §1の「未確定(OQ-2)」箇所が実際の対象の記載に置き換わっている(ADR不要、計画§7の指示どおり計画本文へ記載)
+- [x] 計画§1の選定基準4項目(状態遷移が明確 / DB・API・eventの観測点にアクセス可能 / P0・P1要求が存在 / 固有知識をconnector設定・`docs/domain/` へ隔離可能)それぞれについて、対象がどう満たすかが§1に1行ずつ記載されている
+- [x] `docs/plan/00-overview.md` の未決事項表でOQ-2が「決定済み(日付)」になっている
+- [x] 対象サービスのドメイン知識の置き場として `docs/domain/` 配下に対象サービスのファイルが作成され、機能概要・主要状態・観測点(DB/API/event/log)の初期メモが記載されている(redaction必須: secret / PII / 本番データの生値を書かない)
+
+## 決定内容
+
+**対象サービス: veridia自身。** 対象機能は2件。
+
+| # | 機能 | 対象コード |
+|---|---|---|
+| F-1 | RunRecordのライフサイクル(監査記録の生成・保存・人間レビュー到達点) | `run_store/` / `artifact_validator`(run_record経路) |
+| F-2 | ExecutionEvidenceの保存と検索(metadata + blob、trace_id検索) | `evidence_store/` / `sandbox_runner/` |
 
 ## 検証方法・根拠
 
-<完了時に記入: 決定内容へのリンク、選定基準の充足根拠>
+- 決定内容と選定基準4項目の充足: [phase-1計画 §1](../../plan/phase-1-crud-mvp.md#1-目的と対象)
+- OQ-2の状態更新: [00-overview.md 未決事項の集約](../../plan/00-overview.md)、[phase-1計画 §7](../../plan/phase-1-crud-mvp.md)
+- ドメイン知識の初期メモ: [docs/domain/veridia/README.md](../../domain/veridia/README.md)(F-1 / F-2の状態遷移・観測点・既知の設計上の性質。出典はリポジトリ内のコードとschemaのみで、本番データ・PII・secretを含まない)
+
+**オーナー合意:** 2026-08-02、対話上で「veridia自身 1本」を選択。備考の「実行エージェントが単独で決めてはならない」に従い、候補の洗い出しと選定基準の照合をエージェントが行い、最終決定はオーナーが下した。
+
+**計画§1の記述更新についても同時に合意を得た。** §1は当初「実在する1サービス」および「CRUD/業務アプリを最初のreference target」と想定していた。veridia自身への差し替えは、対象固有の立ち上げコスト(connector設定・`docs/domain/` の棚卸し・redaction運用)より縦通しの成立を優先する判断である。
+
+**残リスク(意図的に受容):** CRUD/業務アプリ特有の前提(業務状態遷移、複数ユーザー、UI経路)がW1〜W19で踏まれない。§1に移行条件として「Phase 1完了条件をveridia自身で満たした時点で外部の実在サービス1本へ横展開し、そこで必要になった変更をveridia固有前提の漏れとしてlearning-logへ記録する」を明記した。
+
+**OQ-4への波及:** 対象がveridia自身になったため、Source Connectorはローカルpath参照で足りる可能性が高い。§7に注記済み(横展開時に再評価)。
 
 ## 備考
 
@@ -35,4 +54,6 @@ Phase 1でW1〜W19を通す対象サービス・機能(1サービス・1〜2機�
 
 ## 記録(完了時に記入)
 
-- domain / learning-log / decisions へ記録した知見: <リンク or 「なし」>
+- domain: [docs/domain/veridia/README.md](../../domain/veridia/README.md) を新規作成(F-1 / F-2の状態遷移・観測点・既知の設計上の性質)
+- learning-log: なし(決定タスクであり、実運用の学びはまだ出ていない。横展開時にveridia固有前提の漏れを記録する)
+- decisions: なし(計画§7の指示どおりADR不要。計画本文へ記載)
