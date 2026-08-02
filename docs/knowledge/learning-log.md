@@ -4,6 +4,24 @@
 
 ---
 
+## 2026-08-01 [process-learning] 検証は作業ツリーではなくコミット済み内容に対して行う(git addの部分失敗を握り潰したcommitが検証を素通りした)
+
+- 事実(何を観測したか): sqk-core統合の作業で、`git add <複数パス> 2>/dev/null` の引数に既にrename済みの旧ファイル名が混ざっており、git がpathspecエラーでコマンド全体を中断した。`2>/dev/null` でエラーが見えず、`git status --short` の出力も staged(1列目)と unstaged(2列目)を読み違えたため、気づかないままcommit・pushした。結果、commitにはrename(旧内容のまま)・submodule・symlinkしか入っておらず、文書本文の改訂と関連3ファイルの変更が欠落した。その後の検証(SHA記載の一致確認・リンク切れ確認・pytest)はすべて**作業ツリー**を読んでいたため全green となり、欠落を検出できなかった。PR の diff を見て初めて発覚した。
+- 学び(なぜ・何を変えるべきか): (1) git コマンドの stderr を捨てない。特に `git add` は引数の一部が不正だと**何もstageせずに全体が失敗する**。(2) commit 前に `git diff --cached --stat` で意図した変更がstageされていることを確認し、`git diff --stat` が空であることも確認する(未staged残りの検出)。(3) commit後の検証は `git show HEAD:<path>` などコミット済み内容に対して行う。作業ツリーに対する検証は「これからcommitする内容」の確認にはなるが、「commitされた内容」の保証にはならない。(4) `git status --short` の2列(staged / unstaged)を機械的に読む習慣を持つ。
+- アクション(変更したもの・リンク): 欠落分を追加commitで補填(履歴は書き換えず)。以降の検証はコミット済み内容と、submodule非取得のfresh cloneでのCI相当実行(ruff / format / pytest / `_index --check` / `gen_models --check`)で行った。PR [#2](https://github.com/rymetry/veridia/pull/2)。
+
+## 2026-08-01 [process-learning] 外部正典をsubmodule+symlinkで取り込む際の運用上の落とし穴4点(sqk-core取り込み)
+
+- 事実(何を観測したか): sqk-coreを `vendor/sqk-core` にsubmoduleとしてSHA固定し、`.claude/skills` からsymlinkで参照する配線([ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md))で次を実測した。(1) **スキル名の衝突**: sqk-coreの `code-review` がClaude Code組み込みの `/code-review` コマンドや他プラグインの同名スキルと重なる。(2) **submodule未取得時**: `.claude/skills` はdangling symlinkになり、エラーを出さずスキルが1つも発見されない(silent failure)。(3) **lint/formatの巻き込み**: `ruff format --check .` が vendor 配下の外部原本を対象にして落ちる。`extend-exclude` への追加が必要。(4) **CIへの影響**: `actions/checkout` は既定でsubmoduleを取得しないが、vendorをlint対象外にし pytest が `testpaths` で閉じていれば、dangling symlinkがあってもCI全ステップはgreenのままだった(fresh cloneで実測)。
+- 学び(なぜ・何を変えるべきか): 外部リポジトリをsymlinkで開発エージェントの発見パスに差し込む配線は、リポジトリの静的検査(lint/format)と名前空間の両方に副作用を持つ。取り込み時には「lint/format対象からの除外」「名前衝突の確認」「未取得時の挙動(失敗するのか黙るのか)」「CIが取得しない前提で成立するか」の4点を実測してから配線を確定する。特にdangling symlinkが無言で0件になる挙動は、セットアップ漏れが検知されないまま進む危険がある。
+- アクション(変更したもの・リンク): 4点すべてを [統合方針 §3.1・§4](../plan/sqk-core-integration.md) に明記。`pyproject.toml` の ruff `extend-exclude` に `vendor` を追加。clone直後の `git submodule update --init --recursive` を [AGENTS.md](../../AGENTS.md) のコマンド表へ追加。
+
+## 2026-08-01 [process-learning] ADR番号は未着手タスクが予約している場合がある(採番前にgrepする)
+
+- 事実(何を観測したか): sqk-core連携方式のADRを `adr-0005-…` として作成したが、既存のADRファイルは0001〜0004しか無い一方、**未着手タスク T-025 が `adr-0005-llm-skill-execution.md` を予約**しており、T-025本文・T-027(3箇所)・T-052・`_index.md` から `ADR-0005` として参照されていた。`docs/decisions/` のファイル一覧だけを見て次番号を決めたため衝突した。
+- 学び(なぜ・何を変えるべきか): このリポジトリはタスク分解の時点でADR番号を予約する運用になっている。ADR採番前に `docs/decisions/` のファイル名だけでなく、`grep -rn "ADR-00NN" docs/` でタスク・計画からの予約参照を確認する。既存の予約が先にある場合は、参照数の少ない側(=新規に書く自分のADR)を改番するほうが波及が小さい。
+- アクション(変更したもの・リンク): 自分のADRを [ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md) へ改番し、参照3箇所(統合方針・00-overview・AGENTS.md)を更新。T-025の予約は無変更。
+
 ## 2026-07-03 [process-learning] 全緑テスト+80%超カバレッジでも実行時異常系・セキュリティ境界のテスト空白は残る(Phase 0徹底レビュー)
 
 - 事実(何を観測したか): Phase 0完了判定(545 passed、カバレッジ実測88%)の直後に行った6観点の徹底レビューで、実行再現可能なバグ4件(ExecutionEvidence `reproduction_bundle` の虚偽blob参照、diff parserのhunk境界誤認・quoted path未対応、generator CLI 2本のexcept順序による到達不能exit分岐、Tool Gateway redactionのkey名不足)を検出した。加えて、実装は正しいのにテストが一度も発火していないセキュリティ境界が3箇所(runner allowlist / repo tool path traversal / seed manifest `..` 拒否)あった。schema契約の負例テストは厚い一方、実行時コンポーネントの異常系が系統的に薄かった。
