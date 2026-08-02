@@ -1,0 +1,137 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/run-record.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "RunRecord",
+  "description": "sqk-core skillの1回の実行を、veridiaが監査可能な形で保存する単位(ADR-0007)。sqk-coreのhandoff-envelopeをそのまま`envelope`に格納し、veridia側の監査項目を外側に付す(field mappingではなくwrapping)。\n\n**ArtifactBase(§6.1)を継承しない。** RunRecordはagent/skillの成果物(artifact)ではなく、artifactを運ぶ実行の記録である。ArtifactBase必須の`confidence`はrunに対して意味を持たず、値を埋めれば捏造になる(learning-log 2026-07-02「契約の必須度は最初のproducerのDoDと突き合わせる」)。`artifact_type`のみ、artifact_validatorのルーティングのために持つ。",
+  "type": "object",
+  "properties": {
+    "artifact_type": {
+      "type": "string",
+      "const": "run_record",
+      "description": "artifact_validatorのルーティングキー。ArtifactBase継承ではなく単独宣言"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "description": "本schemaのversion(semver)。envelope側の契約versionはsqk_core.commitが決める"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "実行の一意識別子(trace_ids/generator.py 準拠)"
+    },
+    "trace_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Trace Storeのrecordと突き合わせるためのtrace識別子(§15)"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "実行完了時刻(RFC 3339。timezone必須。artifact_validatorのFormatCheckerが強制する)"
+    },
+    "created_by": {
+      "type": "object",
+      "properties": {
+        "agent": {
+          "type": "string",
+          "minLength": 1,
+          "description": "skillを起動した実行主体"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "description": "skill実行に使ったmodel識別子"
+        }
+      },
+      "required": ["agent", "model"],
+      "additionalProperties": false,
+      "description": "実行主体。skill名はenvelope.source_skillが正本なのでここには持たない(二重管理の回避)"
+    },
+    "source_refs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "description": "何に対して実行したかへの参照(PR URL、対象パス等)。source groundingはveridiaが実際に強制している唯一のgateであり、空を許さない(§6.1と同趣旨)"
+    },
+    "sqk_core": {
+      "type": "object",
+      "properties": {
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "envelopeが準拠するsqk-core契約のcommit SHA(full)"
+        }
+      },
+      "required": ["commit"],
+      "additionalProperties": false,
+      "description": "契約の出所。SHA固定が更新手段(ADR-0006)であるため、どのSHAの契約を満たすrecordかを残さないと後から解釈できない"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "reviewed", "approved"],
+      "description": "人間レビューの到達点。producerは常に draft を出す(レビューは後続の更新)。ArtifactBaseのenumから deprecated を除いた集合"
+    },
+    "envelope": {
+      "type": "object",
+      "description": "sqk-coreのhandoff-envelopeをそのまま格納する。構造と内包payloadの検証は artifact_validator.validate_handoff_envelope が担う(ここでobjectより強く縛るとsqk-core契約の複製になる)"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "version",
+    "run_id",
+    "trace_id",
+    "created_at",
+    "created_by",
+    "source_refs",
+    "sqk_core",
+    "status",
+    "envelope"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "artifact_type": "run_record",
+      "version": "0.1.0",
+      "run_id": "run-20260802-0001",
+      "trace_id": "trace-20260802-0001",
+      "created_at": "2026-08-02T09:00:00Z",
+      "created_by": {
+        "agent": "claude-code",
+        "model": "claude-opus-5"
+      },
+      "source_refs": ["internal://github/rymetry/veridia/pull/5"],
+      "sqk_core": {
+        "commit": "54e78cc7f5b5bb1fcd63a72495a530929538f3f8"
+      },
+      "status": "draft",
+      "envelope": {
+        "source_skill": "test-architecture-design",
+        "phase": "TAD",
+        "artifacts": [
+          {
+            "type": "ConditionAssignmentMatrix",
+            "schema_ref": "schemas/condition-assignment-matrix.schema.json",
+            "content": {
+              "assignments": [
+                {
+                  "architecture_element_id": "TAE-001",
+                  "assigned_conditions": ["DTC-001"]
+                }
+              ],
+              "unassigned_conditions": []
+            }
+          }
+        ],
+        "trace_ids": ["DTC-001", "TAE-001"],
+        "assumptions": [],
+        "open_questions": [],
+        "gate_status": "passed"
+      }
+    }
+  ]
+}

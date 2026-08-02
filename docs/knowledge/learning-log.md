@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-02 [northstar-proposal] ArtifactBaseの `confidence` 必須は最初の非artifact producerで破綻した(RunRecordは継承を見送り)
+
+- 事実(何を観測したか): ADR-0007の監査ラッパー `RunRecord` を定義する際、`artifact-base.schema.json` を `allOf` で継承すると必須10fieldがすべて掛かる。うち `confidence`(number / 0.0〜1.0 / required)はskill実行1回の記録に対応する値を持たない。埋めるとすれば 1.0 等の任意の定数になり、これは値の捏造にあたる。`created_by.skill` も sqk-core envelope の `source_skill` と二重管理になる。残る8fieldは意味を持った(`source_refs` は「何に対して実行したか」、`status` は人間レビューの到達点として実用的)。
+- 学び(なぜ・何を変えるべきか): これは 2026-07-02のエントリ「出力契約schemaの必須度は最初のproducerのPhase能力と突き合わせて決める」(T-006でPhase 0 generatorにrefの捏造を迫る契約になった件)と同じ罠が、base schema 側で再発したものである。§6.1 の共通契約は「agent/skillの成果物(artifact)」を想定して設計されており、**artifactを運ぶ入れ物(run / envelope / decision record)には合わない**。ArtifactBaseの必須10を減らす判断材料が1件出たが、既存9 schemaへの波及があるため本エントリでは変更しない。**producer証拠が2件目まで出た段階で §6.1 の必須fieldの見直しを起票する**(特に `confidence` は schema 自身が「較正されていない、gate入力にするな」と注記しており、必須である根拠が弱い)。
+- アクション(変更したもの・リンク): `RunRecord` はArtifactBaseを継承せず、`artifact_type` のconstのみ持つ設計とした(artifact_validatorのルーティングは `artifact_type` だけで成立するため検証経路は1本のまま)。例外の条件と理由を [schemas/README.md](../../schemas/README.md) のルールへ明記。非継承であること自体を `tests/test_run_record_schema.py::TestSchemaItself::test_does_not_inherit_artifact_base` / `test_does_not_require_confidence` で固定した。North Star §6.1 の改訂は未実施(変更ルール1)。
+
 ## 2026-08-02 [northstar-proposal] North Star §6 は「veridiaが定義する契約の一覧」ではなく「必要な契約の一覧」に改める必要がある
 
 - 事実(何を観測したか): §6 の27契約(§6.2〜6.27)に**テスト設計系の成果物が1つも含まれていない**ことを確認した。§4.3 は W9 → `TestArchitectureSpec`、W12 → `TestDesignSpec` / `TestAsset` を出力すると定め、§7.3 のskill表も同じ出力を宣言しているのに、§6 に契約定義が無い。結果として [phase-1計画 §4](../plan/phase-1-crud-mvp.md) は W9 を「独立ステップとしては実装しない」と省略していた。一方 sqk-core は同じ工程を ISO/IEC/IEEE 29119-2 / JSTQB v4.0 接地の11工程モデルとして正典化しており、該当契約(`test-architecture-element` / `condition-assignment-matrix` / `test-case` / `coverage-item` 等)をschema + fixture付きで保有していた。さらに sqk-core 側の文書は「TAD を入れないと、agent が分析結果から突然テストケースを生成する動きになりやすい」とアンチパターンとして明示しており、phase-1計画のW9省略はこれに該当していた。

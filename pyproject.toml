@@ -35,6 +35,7 @@ src = [
     "sandbox_runner",
     "sandbox_env",
     "scripts",
+    "run_store",
     "test_asset_index_generator",
     "tests",
     "tool_gateway",
