@@ -20,7 +20,7 @@ producer(OracleSpec / state diff / SecurityFinding)がPhase 1にまだ無いた�
 
 ## 設計上の約束(テストで固定している)
 
-1. **評価器の無いgateは `inconclusive` であって `pass` ではない。** 16/17が未実装の現状で
+1. **評価器の無いgateは `inconclusive` であって `pass` ではない。** 15/16が未実装の現状で
    passにすると、判定全体が意味を失う。
 2. **`inconclusive` はblockしない。** block stageのgateが未実装なだけで全runがblockすると、
    override常態化でgateが形骸化する(§17.0)。代わりに `warn` へ落として可視化する。
