@@ -129,6 +129,15 @@ class TestContractNote:
     def test_is_empty_when_the_schema_has_no_such_constraint(self) -> None:
         assert contract_note(("schemas/handoff-envelope.schema.json",)) == ""
 
+    def test_follows_veridia_refs_and_their_inherited_constraints(self) -> None:
+        # ADR-0010 Decision 4。veridia schemaはArtifactBaseを allOf + $ref で継承するため、
+        # 参照を辿らないと継承側の制約(version の semver pattern)がモデルへ届かない。
+        # 「モデルは自分が何で検証されるかを知らないまま出力する」が1段の間接参照ごしに再発する
+        note = contract_note(("veridia://schemas/source-map.schema.json",))
+
+        assert "`version`" in note
+        assert "0|[1-9]" in note, "ArtifactBase側のsemver patternが辿られていない"
+
     def test_note_is_appended_to_the_instruction_half(self, tmp_path: Path) -> None:
         runner, client = make_runner(tmp_path, [make_envelope()])
 

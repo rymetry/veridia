@@ -17,11 +17,14 @@ from __future__ import annotations
 from collections.abc import Iterator, Sequence
 from typing import Any
 
-from artifact_validator.sqk_schema_store import load_schema
+from artifact_validator.schema_ref import load_schema
 
 PATTERN_KEYWORD = "pattern"
 PROPERTIES_KEYWORD = "properties"
 ITEMS_KEYWORD = "items"
+REF_KEYWORD = "$ref"
+INTERNAL_REF_PREFIX = "#"
+PATH_SEPARATOR = "/"
 
 
 def contract_note(schema_refs: Sequence[str]) -> str:
@@ -48,23 +51,72 @@ def contract_note(schema_refs: Sequence[str]) -> str:
 
 def _patterns(schema_ref: str) -> Iterator[tuple[str, str]]:
     """Yield (property name, pattern) for every `pattern` constraint in one schema."""
-    yield from _walk(load_schema(schema_ref), name=None)
+    yield from _walk(load_schema(schema_ref), name=None, schema_ref=schema_ref, seen={schema_ref})
 
 
-def _walk(node: Any, *, name: str | None) -> Iterator[tuple[str, str]]:
-    if isinstance(node, dict):
-        pattern = node.get(PATTERN_KEYWORD)
-        if isinstance(pattern, str) and name is not None:
-            yield name, pattern
-        for key, value in node.items():
-            if key == PROPERTIES_KEYWORD and isinstance(value, dict):
-                for prop_name, prop_schema in value.items():
-                    yield from _walk(prop_schema, name=prop_name)
-            elif key == ITEMS_KEYWORD:
-                # array items inherit the property name that owns the array
-                yield from _walk(value, name=name)
-            elif isinstance(value, dict | list):
-                yield from _walk(value, name=name)
-    elif isinstance(node, list):
+def _walk(
+    node: Any,
+    *,
+    name: str | None,
+    schema_ref: str,
+    seen: set[str],
+) -> Iterator[tuple[str, str]]:
+    if isinstance(node, list):
         for item in node:
-            yield from _walk(item, name=name)
+            yield from _walk(item, name=name, schema_ref=schema_ref, seen=seen)
+        return
+    if not isinstance(node, dict):
+        return
+
+    pattern = node.get(PATTERN_KEYWORD)
+    if isinstance(pattern, str) and name is not None:
+        yield name, pattern
+
+    yield from _walk_external_ref(node, name=name, schema_ref=schema_ref, seen=seen)
+
+    for key, value in node.items():
+        if key == PROPERTIES_KEYWORD and isinstance(value, dict):
+            for prop_name, prop_schema in value.items():
+                yield from _walk(prop_schema, name=prop_name, schema_ref=schema_ref, seen=seen)
+        elif key == ITEMS_KEYWORD:
+            # array items inherit the property name that owns the array
+            yield from _walk(value, name=name, schema_ref=schema_ref, seen=seen)
+        elif isinstance(value, dict | list):
+            yield from _walk(value, name=name, schema_ref=schema_ref, seen=seen)
+
+
+def _walk_external_ref(
+    node: dict[str, Any],
+    *,
+    name: str | None,
+    schema_ref: str,
+    seen: set[str],
+) -> Iterator[tuple[str, str]]:
+    """Follow a `$ref` to another schema file in the same family.
+
+    veridia schemas inherit ArtifactBase through `allOf: [{"$ref": "..."}]`, so a walk
+    that stops at the reference never sees the inherited constraints — and the model is
+    never told about them. That is the failure mode this module exists to prevent
+    (learning-log 2026-08-02), so it must not reappear one indirection away.
+
+    Internal refs (`#/$defs/...`) are skipped: the generic recursion already reaches
+    them inside the same document.
+    """
+    target = node.get(REF_KEYWORD)
+    if not isinstance(target, str) or target.startswith(INTERNAL_REF_PREFIX):
+        return
+    resolved = _sibling_ref(schema_ref, target)
+    if resolved in seen:
+        return
+    seen.add(resolved)
+    yield from _walk(load_schema(resolved), name=name, schema_ref=resolved, seen=seen)
+
+
+def _sibling_ref(schema_ref: str, target: str) -> str:
+    """Resolve a relative `$ref` filename against the referring schema's own ref.
+
+    Both families name schemas by path, so replacing the last segment keeps the ref in
+    the family it came from — routing never crosses families by accident (ADR-0010).
+    """
+    head, separator, _ = schema_ref.rpartition(PATH_SEPARATOR)
+    return f"{head}{separator}{target}" if separator else target

@@ -1,9 +1,10 @@
-"""Validate sqk-core skill outputs (handoff envelopes and their artifacts).
+"""Validate skill outputs carried by a handoff envelope.
 
-The veridia boundary consumes sqk-core skill output as-is: the envelope is the
-transport, and each carried artifact is validated against the sqk-core schema its
-`schema_ref` names. veridia does not copy or rewrite those contracts
-(`docs/plan/sqk-core-integration.md`).
+The envelope is the transport for **both** contract families (ADR-0010): each carried
+artifact is validated against the schema its `schema_ref` names, whichever family owns
+it. veridia does not copy or rewrite sqk-core's contracts
+(`docs/plan/sqk-core-integration.md`); routing is by namespace
+(`artifact_validator.schema_ref`).
 """
 
 from __future__ import annotations
@@ -15,7 +16,8 @@ from json_schema_errors import issue_from_error, relevant_errors
 from jsonschema.exceptions import ValidationError
 
 from artifact_validator.errors import ArtifactValidationError, ArtifactValidationIssue
-from artifact_validator.sqk_schema_store import HANDOFF_ENVELOPE_REF, validator_for_schema_ref
+from artifact_validator.schema_ref import validator_for_schema_ref
+from artifact_validator.sqk_schema_store import HANDOFF_ENVELOPE_REF
 
 ARTIFACTS_FIELD = "artifacts"
 SCHEMA_REF_FIELD = "schema_ref"
@@ -24,7 +26,7 @@ CONTENT_FIELD = "content"
 ROOT_PATH = "$"
 
 
-def validate_sqk_artifact(
+def validate_envelope_artifact(
     payload: Mapping[str, Any],
     *,
     schema_ref: str,

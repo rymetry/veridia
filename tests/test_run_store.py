@@ -12,7 +12,12 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from artifact_validator import ArtifactValidationError, SqkSchemaError, validate_artifact
+from artifact_validator import (
+    VERIDIA_REF_PREFIX,
+    ArtifactValidationError,
+    SqkSchemaError,
+    validate_artifact,
+)
 from artifact_validator.sqk_schema_store import SQK_SCHEMAS_DIR, available_schema_refs
 from run_store import RunNotFoundError, RunStore, RunStoreError, build_run_record
 
@@ -56,6 +61,68 @@ def make_tad_envelope() -> dict[str, Any]:
         "open_questions": [],
         "gate_status": "passed",
     }
+
+
+def make_veridia_envelope() -> dict[str, Any]:
+    """veridia自前skillの出力エンベロープ(ADR-0010)。sqk-core契約を一切宣言しない。"""
+    source_map = json.loads(
+        (Path(__file__).parent.parent / "schemas" / "source-map.schema.json").read_text(
+            encoding="utf-8"
+        )
+    )["examples"][0]
+    return {
+        "source_skill": "source-grounding",
+        "phase": "W1",
+        "artifacts": [
+            {
+                "type": "SourceMap",
+                "schema_ref": f"{VERIDIA_REF_PREFIX}source-map.schema.json",
+                "content": source_map,
+            }
+        ],
+        "trace_ids": ["SRC-001"],
+        "assumptions": [],
+        "open_questions": [],
+        "gate_status": "passed",
+    }
+
+
+class TestSqkCorePinIsConditional:
+    """ADR-0010 Decision 3: envelopeがsqk-core契約を宣言するときだけSHAを刻む。
+
+    「optional」ではなく条件付きにするのは、veridia自前runに無関係なSHAが乗った
+    recordを後から弾けるようにするため。
+    """
+
+    def test_sqk_core_envelope_requires_the_pin(self) -> None:
+        args = {k: v for k, v in RUN_ARGS.items() if k != "sqk_core_commit"}
+
+        with pytest.raises(RunStoreError, match="sqk_core_commit is required"):
+            build_run_record(make_tad_envelope(), **args)
+
+    def test_veridia_envelope_rejects_the_pin(self) -> None:
+        with pytest.raises(RunStoreError, match="must not be set"):
+            build_run_record(make_veridia_envelope(), **RUN_ARGS)
+
+    def test_veridia_envelope_produces_a_valid_record_without_the_pin(self) -> None:
+        args = {k: v for k, v in RUN_ARGS.items() if k != "sqk_core_commit"}
+
+        record = build_run_record(make_veridia_envelope(), **args)
+
+        assert "sqk_core" not in record
+        validate_artifact(record)
+
+    def test_the_family_is_readable_from_the_stored_record(self, tmp_path: Path) -> None:
+        # recordを見ればどちらのfamilyの実行か判別できること(条件付きにした理由そのもの)
+        args = {k: v for k, v in RUN_ARGS.items() if k != "sqk_core_commit"}
+        store = RunStore.open(tmp_path / "runs")
+        store.save(build_run_record(make_veridia_envelope(), **args))
+        store.save(
+            build_run_record(make_tad_envelope(), **{**RUN_ARGS, "run_id": "run-20260802-0002"})
+        )
+
+        assert "sqk_core" not in store.get("run-20260802-0001")
+        assert store.get("run-20260802-0002")["sqk_core"]["commit"] == PINNED_SHA
 
 
 class TestBuildRunRecord:

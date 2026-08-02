@@ -28,7 +28,6 @@ DOMAIN_REQUIRED = {
     "created_at",
     "created_by",
     "source_refs",
-    "sqk_core",
     "status",
     "requires_human_review",
     "envelope",
@@ -110,10 +109,15 @@ class TestAuditFieldValues:
         with pytest.raises(ArtifactValidationError):
             validate_artifact(record)
 
-    def test_sqk_core_is_required_because_contracts_move_with_the_sha(self) -> None:
+    def test_sqk_core_is_not_required_by_the_schema_alone(self) -> None:
+        # ADR-0010: veridia自前skillの実行にはsqk-core契約が無いため schema では必須にしない。
+        # 「envelopeがsqk-core契約を宣言しているときは必須、していないときは禁止」という
+        # 条件付きの強制は producer(build_run_record)が行い、そちらでテストする
+        # (tests/test_run_store.py::TestSqkCorePinIsConditional)。
+        # envelope内のschema_refを見て条件分岐するJSON Schemaは書けるが壊れやすく読めない
         record = {k: v for k, v in make_valid_record().items() if k != "sqk_core"}
-        with pytest.raises(ArtifactValidationError):
-            validate_artifact(record)
+
+        validate_artifact(record)
 
     @pytest.mark.parametrize("status", ["draft", "reviewed", "approved"])
     def test_review_statuses_pass(self, status: str) -> None:
