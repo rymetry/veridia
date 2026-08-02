@@ -3,10 +3,13 @@
 The sequence is fixed and every step must pass before the next runs:
 
     load skill (pinned SHA) → render prompt → LLM → validate envelope against the
-    sqk-core contract → wrap as RunRecord → save → record run metrics
+    contract it declares → wrap as RunRecord → save → record run metrics
 
 An output that does not satisfy the contract it declares never becomes a stored
-record. Metrics are written after the save so a stored run always has a trace.
+record. Metrics are still written for it: once the model has answered, the call is
+paid for whether or not a record comes out of it, and a rejected run that leaves no
+trace makes the cost of contract drift invisible (learning-log 2026-08-02). The
+metrics `status` says which happened.
 """
 
 from __future__ import annotations
@@ -19,7 +22,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from artifact_validator import declares_sqk_core_contract, validate_handoff_envelope
+from artifact_validator import declares_sqk_core_contract
 from run_store import RunStore, build_run_record
 from trace_ids import IdFactory, TraceContext
 from trace_store import RUN_METRICS_EVENT, TraceStore
@@ -35,6 +38,8 @@ ARTIFACTS_FIELD = "artifacts"
 CONTENT_FIELD = "content"
 ITEMS_FIELD = "items"
 SUCCESS_STATUS = "success"
+# The model answered and the call was paid for, but the output never became a record.
+REJECTED_STATUS = "rejected"
 GIT_TIMEOUT_SECONDS = 5
 
 
@@ -103,26 +108,36 @@ class SkillRunner:
             output_schema=portable_envelope_schema(skill.output_schema_refs),
         )
 
-        envelope = _with_authoritative_fields(response.output, authoritative_fields)
-        validate_handoff_envelope(envelope)
+        # The call is now paid for. Whatever happens next, it gets a trace: metrics are
+        # recorded in `finally` so a rejected run is counted, not silently discarded
+        # (learning-log 2026-08-02, measured at ~5 minutes of inference with no record).
+        status = REJECTED_STATUS
+        try:
+            envelope = _with_authoritative_fields(response.output, authoritative_fields)
+            # The envelope is validated by `build_run_record`, which refuses to wrap an
+            # output that does not satisfy the contract it declares. A second call here
+            # validated the same object twice; mutation testing showed no test could
+            # tell the two apart, because there is nothing to tell apart.
+            record = build_run_record(
+                envelope,
+                run_id=context.run_id,
+                trace_id=context.trace_id,
+                agent=agent,
+                model=response.model,
+                source_refs=list(source_refs),
+                created_at=datetime.now(UTC),
+                # Only a run that actually used a sqk-core contract pins its SHA (ADR-0010)
+                sqk_core_commit=(
+                    _pinned_sqk_core_commit()
+                    if declares_sqk_core_contract(envelope.get(ARTIFACTS_FIELD))
+                    else None
+                ),
+            )
+            record_path = self.run_store.save(record)
+            status = SUCCESS_STATUS
+        finally:
+            self._record_run_metrics(skill_name, context, response, status=status)
 
-        record = build_run_record(
-            envelope,
-            run_id=context.run_id,
-            trace_id=context.trace_id,
-            agent=agent,
-            model=response.model,
-            source_refs=list(source_refs),
-            created_at=datetime.now(UTC),
-            # Only a run that actually used a sqk-core contract pins its SHA (ADR-0010)
-            sqk_core_commit=(
-                _pinned_sqk_core_commit()
-                if declares_sqk_core_contract(envelope.get(ARTIFACTS_FIELD))
-                else None
-            ),
-        )
-        record_path = self.run_store.save(record)
-        self._record_run_metrics(skill_name, context, response)
         return SkillRunResult(
             run_id=context.run_id,
             trace_id=context.trace_id,
@@ -135,10 +150,16 @@ class SkillRunner:
         skill_name: str,
         context: TraceContext,
         response: Any,
+        *,
+        status: str,
     ) -> None:
         """Save token / cost metrics to the Trace Store (ADR-0005 Decision C1 / §15.2).
 
         Metrics only: no prompt text reaches the Trace Store from here.
+
+        `status` separates a stored run from one whose output was rejected. Both cost
+        the same; only one produces a record, and the difference is what tells you
+        whether contract communication is improving (§19.7).
         """
         now = _format_utc(datetime.now(UTC))
         self.trace_store.save_record(
@@ -146,7 +167,7 @@ class SkillRunner:
             sequence=1,
             event_type=RUN_METRICS_EVENT,
             name=f"skill:{skill_name}",
-            status=SUCCESS_STATUS,
+            status=status,
             started_at=now,
             ended_at=now,
             redacted_args=_metrics(response),

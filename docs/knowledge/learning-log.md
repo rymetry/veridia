@@ -14,7 +14,8 @@
 
 - 事実(何を観測したか): 上記の失敗実行のあと `.veridia/store` を確認すると、**RunRecordは0件、Trace Storeも空**だった。`SkillRunner.run()` は「保存されたrunが必ずtraceを持つ」ようにmetricsを保存の**後**に記録する設計であり、検証で落ちるとその手前でraiseするため何も残らない。約4分49秒ぶんのAPI消費が完全に不可視になった。成功した再実行は $0.936(cache_creation 29,437 / output 24,784 tokens)だったので、失敗側も同程度を払っている。
 - 学び(なぜ・何を変えるべきか): 「保存されたrunが必ずtraceを持つ」は正しい要件だが、その逆(**traceを持つのは保存されたrunだけ**)は要件ではなく実装の副作用だった。コスト計測(§19.7のgate運用KPIやADR-0005のコスト管理)から見ると、**失敗した試行こそ数えるべき対象**である。契約違反で捨てた回数と金額が見えないと、contract noteやschema投影のような「伝達を改善する施策」の効果を測れない。順序ではなく、失敗経路でもmetricsを残す形(try/finally等)に変える必要がある。
-- アクション(変更したもの・リンク): 本エントリでは実装を変更していない(`SkillRunner` の保存順序はコメント付きで意図的に選ばれており、変更は独立して検討する)。フォローアップとして起票済み。観測値は [T-029](../tasks/phase-1/T-029-source-grounding-skill.md) の実行記録に残した。
+- アクション(変更したもの・リンク): `SkillRunner.run()` の検証〜保存を `try` で囲み、metricsを `finally` で記録するようにした。statusを `success` / `rejected` に分けたので、捨てた回数と金額を後から集計できる。「保存されたrunが必ずtraceを持つ」も維持している(保存成功後に `success` を確定させる)。regression guard: `tests/test_skill_runner.py::TestRejectedRunsAreStillCounted`(コストが記録される / statusが区別できる / それでもRunRecordは作られない / 失敗経路でもprompt本文が漏れない の4本)。観測値は [T-029](../tasks/phase-1/T-029-source-grounding-skill.md) の実行記録に残した。
+- **副産物:** この修正のmutation checkで、`SkillRunner` 側の `validate_handoff_envelope` 呼び出しが `build_run_record` 内の同じ呼び出しと**完全に重複**していることが分かった(削除してもテストが1件も落ちない)。今日3件目の同種の診断であり、削除して重複の解消理由をコメントに残した。
 
 ## 2026-08-02 [process-learning] mutation checkはテストの穴だけでなく「到達不能な防御コード」も見つける(ADR-0010実装時)
 

@@ -59,7 +59,7 @@ uv run python qa-skills/source-grounding/scripts/run_skill.py change.json --agen
 
 注目すべき自己申告が2点あった。(1) 「作業ディレクトリに対象repoが無いため head_sha のファイル実体と突き合わせていない」— ADR-0005の隔離により**skillは自分のspanを検証できない**。実際の突き合わせはveridia側でしか行えず、validatorを置く自然な場所がここにある。(2) 「`contract_note.py` の第2 hunkのみ再構成した行数がhunkヘッダ申告と1行合わなかったため、spanを広めに取って吸収した」— 誤差を隠さず表明している。
 
-**1回目は失敗している。** 同じ入力で契約検証に全面的に弾かれた(所要4分49秒、記録は0件)。原因と対処は learning-log の2エントリに記録した。呼ぶ手前の門番(ChangeSetが読めない / `source_refs` が空)はテストで固定してある。
+**1回目は失敗している。** 同じ入力で契約検証に全面的に弾かれた(所要4分49秒、**記録は0件**)。原因と対処は learning-log の2エントリに記録した。記録が0件だった件も修正済みで、以後は失敗した実行も `status: rejected` でTrace Storeに残る。呼ぶ手前の門番(ChangeSetが読めない / `source_refs` が空)はテストで固定してある。
 
 ## 検証方法・根拠
 
