@@ -67,6 +67,7 @@ class TestBuildRunRecord:
         assert record["envelope"] == envelope, "envelopeは書き換えずそのまま格納する"
         assert record["artifact_type"] == "run_record"
         assert record["status"] == "draft", "producerは常にdraftを出す(レビューは後続の更新)"
+        assert record["requires_human_review"] is True, "Phase 1は候補生成+人間レビュー必須(計画§7)"
 
     def test_result_satisfies_the_run_record_contract(self) -> None:
         validate_artifact(build_run_record(make_tad_envelope(), **RUN_ARGS))

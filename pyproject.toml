@@ -11,6 +11,9 @@ dependencies = [
     # referencingはjsonschemaの推移的依存だが、$ref解決のRegistryを直接importする
     # (schemas/README.mdの規約・tests)ため明示宣言する
     "referencing>=0.31,<1",
+    # pyyamlはsqk-core SKILL.mdのfrontmatterをruntimeでパースする(skill_runner)。
+    # T-021時点の「実行時利用が必要になったら本体依存へ昇格する」に該当したため昇格した。
+    "pyyaml>=6,<7",
 ]
 
 [dependency-groups]
@@ -19,9 +22,6 @@ dependencies = [
 dev = [
     "pytest>=9.0.3,<10",
     "ruff>=0.5,<1",
-    # pyyamlはskill manifest(qa-skills/*/manifest.yaml §7.1)のテスト内パースで直接import
-    # する(推移的依存に頼らない明示宣言。T-021)。実行時利用が必要になったら本体依存へ昇格する。
-    "pyyaml>=6,<7",
     "pytest-cov>=7.1.0",
 ]
 
@@ -36,6 +36,7 @@ src = [
     "sandbox_env",
     "scripts",
     "run_store",
+    "skill_runner",
     "test_asset_index_generator",
     "tests",
     "tool_gateway",

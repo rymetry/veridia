@@ -30,6 +30,7 @@ DOMAIN_REQUIRED = {
     "source_refs",
     "sqk_core",
     "status",
+    "requires_human_review",
     "envelope",
 }
 
@@ -61,6 +62,12 @@ class TestSchemaItself:
     def test_does_not_require_confidence(self) -> None:
         # ArtifactBaseを継承しない理由そのもの。runに較正されたconfidenceは存在しない
         assert "confidence" not in load_schema()["properties"]
+
+    def test_declares_requires_human_review_without_inheriting_base(self) -> None:
+        # T-027 DoD が要求するfield。confidenceと違いproducerが真実を供給できる
+        # (Phase 1のLLM出力は候補生成+人間レビュー必須。計画§7)ため必須にできる
+        assert load_schema()["properties"]["requires_human_review"]["type"] == "boolean"
+        assert "requires_human_review" in load_schema()["required"]
 
 
 class TestValidInstances:

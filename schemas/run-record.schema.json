@@ -45,7 +45,10 @@
           "description": "skill実行に使ったmodel識別子"
         }
       },
-      "required": ["agent", "model"],
+      "required": [
+        "agent",
+        "model"
+      ],
       "additionalProperties": false,
       "description": "実行主体。skill名はenvelope.source_skillが正本なのでここには持たない(二重管理の回避)"
     },
@@ -66,14 +69,24 @@
           "description": "envelopeが準拠するsqk-core契約のcommit SHA(full)"
         }
       },
-      "required": ["commit"],
+      "required": [
+        "commit"
+      ],
       "additionalProperties": false,
       "description": "契約の出所。SHA固定が更新手段(ADR-0006)であるため、どのSHAの契約を満たすrecordかを残さないと後から解釈できない"
     },
     "status": {
       "type": "string",
-      "enum": ["draft", "reviewed", "approved"],
+      "enum": [
+        "draft",
+        "reviewed",
+        "approved"
+      ],
       "description": "人間レビューの到達点。producerは常に draft を出す(レビューは後続の更新)。ArtifactBaseのenumから deprecated を除いた集合"
+    },
+    "requires_human_review": {
+      "type": "boolean",
+      "description": "人間レビュー待ちか。Phase 1のLLM出力は「候補生成+人間レビュー必須」から始める(計画§7)ため常に true。ArtifactBaseの同名fieldと意味は同じだが、RunRecordは継承しないので単独宣言する(ADR-0007)。confidence と違い producer が真実を供給できるため必須にできる"
     },
     "envelope": {
       "type": "object",
@@ -90,6 +103,7 @@
     "source_refs",
     "sqk_core",
     "status",
+    "requires_human_review",
     "envelope"
   ],
   "additionalProperties": false,
@@ -104,11 +118,14 @@
         "agent": "claude-code",
         "model": "claude-opus-5"
       },
-      "source_refs": ["internal://github/rymetry/veridia/pull/5"],
+      "source_refs": [
+        "internal://github/rymetry/veridia/pull/5"
+      ],
       "sqk_core": {
         "commit": "54e78cc7f5b5bb1fcd63a72495a530929538f3f8"
       },
       "status": "draft",
+      "requires_human_review": true,
       "envelope": {
         "source_skill": "test-architecture-design",
         "phase": "TAD",
@@ -120,14 +137,19 @@
               "assignments": [
                 {
                   "architecture_element_id": "TAE-001",
-                  "assigned_conditions": ["DTC-001"]
+                  "assigned_conditions": [
+                    "DTC-001"
+                  ]
                 }
               ],
               "unassigned_conditions": []
             }
           }
         ],
-        "trace_ids": ["DTC-001", "TAE-001"],
+        "trace_ids": [
+          "DTC-001",
+          "TAE-001"
+        ],
         "assumptions": [],
         "open_questions": [],
         "gate_status": "passed"

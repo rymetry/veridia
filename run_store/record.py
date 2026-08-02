@@ -15,8 +15,11 @@ from typing import Any
 from artifact_validator import validate_artifact, validate_handoff_envelope
 
 ARTIFACT_TYPE = "run_record"
-SCHEMA_VERSION = "0.1.0"
+SCHEMA_VERSION = "0.2.0"
 INITIAL_STATUS = "draft"
+# Phase 1のLLM出力は「候補生成 + 人間レビュー必須」から始める(phase-1計画 §7)。
+# producerが真実として供給できる値なので必須fieldにできる(confidenceとの違い)。
+INITIAL_REQUIRES_HUMAN_REVIEW = True
 
 
 def build_run_record(
@@ -53,6 +56,7 @@ def build_run_record(
         "source_refs": list(source_refs),
         "sqk_core": {"commit": sqk_core_commit},
         "status": INITIAL_STATUS,
+        "requires_human_review": INITIAL_REQUIRES_HUMAN_REVIEW,
         "envelope": dict(envelope),
     }
     validate_artifact(record)
