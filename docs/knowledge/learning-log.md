@@ -27,6 +27,29 @@
 - 事実(何を観測したか): veridia側で `handoff-envelope` の内包artifactを `artifacts[].schema_ref` に対して検証する実装を入れた直後、sqk-core の**valid fixture** `schemas/tests/fixtures/handoff-envelope/valid/risk-analysis-handoff.json` が落ちた。内包する RiskItem が `{id, statement}` の2fieldしか持たず、`risk-item.schema.json` が要求する `category` / `likelihood` / `impact` / `treatment` を欠いていた。原因を追うと、sqk-core の `scripts/validate-schemas.sh` は各fixtureを**自分のschemaに対してのみ**検証しており、`handoff-envelope.artifacts[].items` が制約なしのarrayであるため、内包payloadは宣言した `schema_ref` に対して一度も検証されない構造だった。
 - 学び(なぜ・何を変えるべきか): envelope方式は「transport構造」と「payload契約」の2層になるが、片方だけを検証するハーネスでは層の継ぎ目が無検査になる。これはveridia固有の問題ではなく、envelopeを受け取る全consumer(claude-code / gpts / codex / veridia)が同じ穴を踏む。したがって**修正はveridia側ではなくsqk-coreの検証ハーネスに入れるべき**で、veridia側の境界検証は二重防御として残す。分離リポジトリ構成の価値はここに出る(マージしていればveridia1件の修正で終わり、他3プラットフォームには届かない)。
 - アクション(変更したもの・リンク): 事実を `tests/test_sqk_schema_validation.py::TestHandoffEnvelope::test_envelope_payload_gap_in_sqk_core_fixture` に固定(docstringにSHA更新後の削除条件を明記)。sqk-coreへ [Issue #48](https://github.com/rymetry/sqk-core/issues/48) を起票([統合方針 §5](../plan/sqk-core-integration.md) の経路。フィードバックループの初回稼働)。
+## 2026-08-02 [process-learning] サブスクCLIを推論backendにすると、CLI自身がpromptを平文永続化する(§15.4はveridiaのstoreに閉じた制約ではない)
+
+- 事実(何を観測したか): [ADR-0005](../decisions/adr-0005-llm-skill-execution.md) の検討で、`claude -p` / `codex exec` をLLM skillの実行経路として実測した際、プローブで送ったprompt本文が `~/.claude/projects/<...>/<session-id>.jsonl` と `~/.codex/sessions/<date>/rollout-<...>.jsonl` に**平文で残っている**ことをgrepで確認した。ADRのdraftは「veridiaのTrace Storeにprompt本文を保存しない」ことで§15.4を満たすと書いていたが、保存しているのはCLI側であり、この設計では対象プロダクトのPR diff・コードがveridiaの管理外のディスクに残る。対策として `claude --no-session-persistence` / `codex exec --ephemeral` が存在する。
+- 学び(なぜ・何を変えるべきか): §15.4「保存しないもの」は**保存先を問わない制約**であり、自プロダクトのstoreの保存方針だけでは満たせない。外部プロセス(CLI・SDK・proxy)を実行経路に挟む場合は、そのプロセスが何を永続化するかを**実際にディスクを見て確認する**。ドキュメントやフラグ一覧を読むだけでは、既定で有効な永続化を見落とす。加えて、provider側のretentionは制御外であり、これは緩和ではなく残存リスクとして記録するしかない。
+- アクション(変更したもの・リンク): ADR-0005 Decision 5.5でセッション永続化の抑止を必須要件化し、抑止が効いていることをcapability probeで検証する契約にした。provider側retentionはConsequencesの残存リスクとして明記。
+
+## 2026-08-02 [process-learning] CLIはcwdの祖先方向へ指示ファイルを探索する — 「空ディレクトリ」は隔離条件ではない
+
+- 事実(何を観測したか): ADR-0005 draftは「LLM実行用のcwdを専用の空ディレクトリに固定すれば、対象プロダクトの `AGENTS.md` が指示として流入する経路を構造的に閉じられる」とし、あわせて「[ADR-0004](../decisions/adr-0004-sandbox-runtime.md) のsandbox一時ディレクトリと同じ扱いでよい」と書いていた。しかしCLIの `CLAUDE.md` / `AGENTS.md` 探索は**cwdから祖先方向へ遡る**ため、空であることと指示ファイルを持つ祖先の外にあることは別条件である。ADR-0004の通常rootは `.veridia/sandbox/runs/`(veridia repo内)であり、そこをcwdにすると親のveridia `AGENTS.md` が探索対象になる。さらに `~/.codex/AGENTS.md` が実在し(検証時点で0バイト)、`--ignore-user-config` が除外すると明記しているのは `config.toml` だけだった。
+- 学び(なぜ・何を変えるべきか): エージェントCLIを実行経路に使う場合、隔離条件は「cwdが空であること」ではなく「**指示ファイルを持つ祖先の外にあること**」である。対象プロダクトのrepoをcwdにすると、そのrepoの `AGENTS.md` は「信頼できないソースが書いた指示」そのものになり、§16.4のprompt injection経路として直接効く。API直結には存在しないCLI固有の経路であり、実行経路を変えたら防御面も洗い直す必要がある。既存ADRの成果物(sandbox root等)を「同じ扱いでよい」と流用する際は、その前提が新しい文脈でも成立するか確認する。
+- アクション(変更したもの・リンク): ADR-0005 Decision 5.1で、cwdをveridia・対象repo・ユーザ設定ディレクトリの外に置くこと、祖先に指示ファイルとVCS rootが無いことを起動前に検証すること、**ADR-0004の既定rootを流用しないこと**を明記。グローバル指示ファイルの扱いはT-027の実測要件とした。
+
+## 2026-08-02 [process-learning] 信頼ラベルをLLMに生成させるとtrust gateが自己申告で迂回できる(ラベルのauthorityはingestion層に置く)
+
+- 事実(何を観測したか): ADR-0005 draftは、artifactのdomain固有fieldを一律「LLMが生成」とし、§16.4のtrust規則(untrusted / externalをリスク引き下げの根拠にしない)は「`source_refs` を解決してSourceMapの `trust_level` を照合する」ことで担保するとしていた。しかしSourceMap自体をLLM skillが生成する設計では、**入力汚染を受けたモデルが `trust_level: trusted` と出力するだけで照合を通過できる**。「決定的コードによる照合」に見えて、照合対象がモデルの自己申告だった。North Star §5.2はtrust label付与をingestion層の責務としている。
+- 学び(なぜ・何を変えるべきか): セキュリティ判定に使うラベルは、**判定される側が生成してはならない**。LLM出力に対するgateを設計するとき、gateの入力がLLM出力の一部になっていないかを必ず確認する。ラベルのauthorityがどの層にあるかはNorth Star側で既に定義されていることが多く、実装側で暗黙に移してしまうと防御が形骸化する。同種の観点として、`status` / `requires_human_review` をrunnerが決定的に組み立てる設計は正しかったが、trust属性は見落としていた — 「モデルに触らせないfield」の列挙は、artifact共通契約だけでなくdomain固有fieldにも及ぶ。
+- アクション(変更したもの・リンク): ADR-0005 Decision 6.3でsource identity / trust属性(`source_id` / `uri` / `source_version` / `trust_level`)をconnector決定的付与としてLLM生成対象から除外。Decision 10.5で照合に使う `trust_level` はconnector由来の値に限ると明記。Source Connector(T-026)への依存としてP-3に記録した。
+
+## 2026-08-02 [process-learning] ADRのレビューは反復すると前回の修正が新たな矛盾を生む — 実測1件からの一般化にも注意する
+
+- 事実(何を観測したか): ADR-0005をCodex(gpt-5.6-sol)で5回レビューした(判定は `request-changes` ×4 → `approve`、指摘は延べ blocker 6 / major 16 / minor 5)。2回目の指摘「失敗attemptのtraceが記録されず消費量を過少集計する」に対し、trace保存をCLI呼び出し直後へ移す修正を入れたところ、3回目に「`outcome`(success / retryable_error / terminal_error)は検証後にしか確定せず、Trace Storeはinsert-onlyなので後から更新できない」という**修正が作り込んだ新しい矛盾**を指摘された。別件では、`{answer: string}` という最小schema 1件の実測から「provider側はminLength / patternを非対応」と一般化しており、これも誤りとして指摘された。
+- 学び(なぜ・何を変えるべきか): (1) 指摘対応は差分だけを見ず、**修正箇所の前後の整合を再確認する**。特に順序・状態遷移・不変条件に触る修正は、局所的には正しくても全体の契約を壊しやすい。(2) 実測は強い根拠だが、**測った範囲を超えて一般化しない**。1ケースの成功は他ケースの互換性を証明しない。断定する代わりに、検証範囲を明示して未検証部分はcapability probe等で実装時に確定する設計にする。(3) 外部レビューは「同意させる」のではなく「事実主張を検証させる」形で使うと有効に働いた。指摘のうち事実に関わるものは全てCLIの実挙動・既存コード・North Starで裏を取り、成立しないものは採用しない前提で進めた(今回は全て裏付けが取れた)。
+- アクション(変更したもの・リンク): ADR-0005 Decision 7で保存位置を「検証・分類の後、retry判定の前」に修正し、artifact全体検証をattempt loop内へ移動。Decision 6.1でportable schema profileを保守的に定義し、keyword単位の実測拡張をT-027のcapability testに委ねた。
 
 ## 2026-08-01 [process-learning] 検証は作業ツリーではなくコミット済み内容に対して行う(git addの部分失敗を握り潰したcommitが検証を素通りした)
 
