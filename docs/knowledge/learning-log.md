@@ -4,6 +4,19 @@
 
 ---
 
+## 2026-08-02 [process-learning] 「profile外の制約を伝える」を直したとき、profile**内**の制約が伝わっているかは誰も確認していなかった(T-029実LLM実測)
+
+- 事実(何を観測したか): T-029の `source-grounding` を実LLMで初めて回したところ(対象: veridia PR #14、diff約11k tokens)、**4分49秒かけた出力が契約検証で全面的に弾かれた**。内訳は (a) ArtifactBase由来の必須field 6件の欠落、(b) `extracted_items` への `label` / `note` の生成(schemaは `additionalProperties: false`)、(c) `source_type` に enum 外の `diff`。原因を追うと、`portable_envelope_schema` がCLIへ渡す `content` schema が **`{"type": "object"}` のまま**だった。モデルはSourceMapの形を一文字も知らされていなかった。**そして (a)(b)(c) はいずれも `required` / `additionalProperties` / `enum` であり、ADR-0005 Decision 6.1 の portable profile に最初から含まれている。** 伝えられたはずのものを伝えていなかった。
+- 学び(なぜ・何を変えるべきか): 2026-08-02の先行エントリ「CLIが拘束できない制約はpromptで伝えないと破棄される」は `pattern`(profile**外**)を対象に `contract_note` を足して解決した。しかしそのとき、**profile内の制約が実際に送られているかは検証していなかった** — 「profile内は自動的に伝わる」と暗黙に仮定していた。実際には `content` が素通しのobjectで、profile内の情報量もゼロだった。教訓は「片方の穴を塞いだら、対になる側が塞がっている**根拠**を確認する」。塞いだ側だけテストを書くと、対側の欠落はテストが1件も無いまま残る(実際、この経路のテストは1件も無かった)。一般化すると: **validatorが検査する制約のうち、伝達経路が表現できるものは全部伝え、表現できないものだけを別経路に回す。** 境界は「表現できるか」であって「実装済みか」ではない。
+- アクション(変更したもの・リンク): `skill_runner/portable_schema.py` を追加し、宣言された出力schemaを portable profile へ投影してenvelope schemaへ埋め込む(`$ref` / `allOf` のinline、`const`→`enum`、`unevaluatedProperties`→`additionalProperties` の翻訳を含む)。regression guard: `tests/test_portable_schema.py::TestTheThreeObservedFailures` が観測された3種を名指しで固定する。修正後の同一入力で成功(下エントリ)。記録: [T-029](../tasks/phase-1/T-029-source-grounding-skill.md)。
+
+## 2026-08-02 [process-learning] 契約検証で落ちた実行は、コストを払ったのに記録が1件も残らない(T-029実LLM実測)
+
+- 事実(何を観測したか): 上記の失敗実行のあと `.veridia/store` を確認すると、**RunRecordは0件、Trace Storeも空**だった。`SkillRunner.run()` は「保存されたrunが必ずtraceを持つ」ようにmetricsを保存の**後**に記録する設計であり、検証で落ちるとその手前でraiseするため何も残らない。約4分49秒ぶんのAPI消費が完全に不可視になった。成功した再実行は $0.936(cache_creation 29,437 / output 24,784 tokens)だったので、失敗側も同程度を払っている。
+- 学び(なぜ・何を変えるべきか): 「保存されたrunが必ずtraceを持つ」は正しい要件だが、その逆(**traceを持つのは保存されたrunだけ**)は要件ではなく実装の副作用だった。コスト計測(§19.7のgate運用KPIやADR-0005のコスト管理)から見ると、**失敗した試行こそ数えるべき対象**である。契約違反で捨てた回数と金額が見えないと、contract noteやschema投影のような「伝達を改善する施策」の効果を測れない。順序ではなく、失敗経路でもmetricsを残す形(try/finally等)に変える必要がある。
+- アクション(変更したもの・リンク): `SkillRunner.run()` の検証〜保存を `try` で囲み、metricsを `finally` で記録するようにした。statusを `success` / `rejected` に分けたので、捨てた回数と金額を後から集計できる。「保存されたrunが必ずtraceを持つ」も維持している(保存成功後に `success` を確定させる)。regression guard: `tests/test_skill_runner.py::TestRejectedRunsAreStillCounted`(コストが記録される / statusが区別できる / それでもRunRecordは作られない / 失敗経路でもprompt本文が漏れない の4本)。観測値は [T-029](../tasks/phase-1/T-029-source-grounding-skill.md) の実行記録に残した。
+- **副産物:** この修正のmutation checkで、`SkillRunner` 側の `validate_handoff_envelope` 呼び出しが `build_run_record` 内の同じ呼び出しと**完全に重複**していることが分かった(削除してもテストが1件も落ちない)。今日3件目の同種の診断であり、削除して重複の解消理由をコメントに残した。
+
 ## 2026-08-02 [process-learning] mutation checkはテストの穴だけでなく「到達不能な防御コード」も見つける(ADR-0010実装時)
 
 - 事実(何を観測したか): `schema_ref` のveridia側resolverに、(a) 解決結果が `schemas/` 直下から出ていないかのtraversal検査と、(b) 実在ファイル名のallowlist検査を両方置いた。mutation checkで (a) を削除したところ **テストが1件も落ちなかった**。調べると、allowlistは `Path.name` の集合との完全一致であり、区切り文字や `..` を含む文字列は定義上どれにも一致しない。つまり (a) は (b) に完全に包含されており、**一度も発火しえないコードだった**。テストを足しても発火させられない。

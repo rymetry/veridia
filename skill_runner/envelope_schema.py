@@ -14,7 +14,34 @@ from __future__ import annotations
 
 from typing import Any
 
+from artifact_validator.errors import SqkSchemaError
+
+from skill_runner.portable_schema import portable_projection
+
 GATE_STATUSES = ("passed", "passed-with-risks", "blocked")
+
+
+def _content_schema(schema_ref_enum: tuple[str, ...]) -> dict[str, Any] | None:
+    """The portable shape of the artifact the skill must produce.
+
+    Handing the model a bare `{"type": "object"}` here means it is never told what the
+    validator will check, and it pays for a call that is then discarded — measured on a
+    real run against PR #14 (2026-08-02). Everything the model needs is inside the
+    portable profile, so it is projected and embedded.
+
+    Only a single declared output is embedded: with several, the shapes differ per
+    artifact and one schema cannot describe them all. `contract_note` still covers all
+    of them, and the validator enforces regardless.
+    """
+    if len(schema_ref_enum) != 1:
+        return None
+    try:
+        projected = portable_projection(schema_ref_enum[0])
+    except SqkSchemaError:
+        # An unresolvable ref is the skill source's problem to report, not something to
+        # fail prompt construction over: the validator rejects the output either way.
+        return None
+    return projected or None
 
 
 def portable_envelope_schema(schema_ref_enum: tuple[str, ...]) -> dict[str, Any]:
@@ -36,6 +63,9 @@ def portable_envelope_schema(schema_ref_enum: tuple[str, ...]) -> dict[str, Any]
     }
     if schema_ref_enum:
         artifact["properties"]["schema_ref"] = {"type": "string", "enum": list(schema_ref_enum)}
+    content = _content_schema(schema_ref_enum)
+    if content:
+        artifact["properties"]["content"] = content
 
     return {
         "type": "object",

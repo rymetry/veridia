@@ -111,6 +111,16 @@ def _veridia_filename(schema_ref: str) -> str:
     return filename
 
 
+def sibling_ref(schema_ref: str, target: str) -> str:
+    """Resolve a relative `$ref` filename against the referring schema's own ref.
+
+    Both families name schemas by path, so replacing the last segment keeps the ref in
+    the family it came from — routing never crosses families by accident.
+    """
+    head, separator, _ = schema_ref.rpartition("/")
+    return f"{head}{separator}{target}" if separator else target
+
+
 def veridia_ref_for(schema_path: str | Path) -> str:
     """Build the `schema_ref` a veridia schema file is named by."""
     return f"{VERIDIA_REF_PREFIX}{Path(schema_path).name}"

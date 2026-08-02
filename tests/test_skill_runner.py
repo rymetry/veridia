@@ -8,6 +8,8 @@ fakeは環境変数から選択できず、設定漏れで偽artifactが保存�
 from __future__ import annotations
 
 import json
+from dataclasses import replace
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,7 +31,7 @@ from skill_runner.claude_cli import _assert_hermetic, _render
 from skill_runner.contract_note import contract_note
 from skill_runner.envelope_schema import portable_envelope_schema
 from skill_runner.llm_client import Prompt
-from trace_ids import RUN_ID_RE, TRACE_ID_RE
+from trace_ids import RUN_ID_RE, TRACE_ID_RE, IdFactory
 from trace_store import TraceStore
 
 pytestmark = pytest.mark.skipif(
@@ -63,6 +65,14 @@ def make_envelope() -> dict[str, Any]:
         "open_questions": [],
         "gate_status": "passed",
     }
+
+
+def fixed_id_factory() -> IdFactory:
+    """Deterministic IDs so a test can name a run that raises before returning one."""
+    return IdFactory(
+        clock=lambda: datetime(2026, 8, 2, 9, 0, tzinfo=UTC),
+        token_hex=lambda nbytes: "ab" * nbytes,
+    )
 
 
 def make_runner(
@@ -217,7 +227,72 @@ class TestSkillRunner:
         records = runner.trace_store.find_by_run_id(result.run_id)
         assert [r.event_type for r in records] == ["run_metrics"]
         assert records[0].name == f"skill:{SKILL}"
+        assert records[0].status == "success"
         assert "usage" in records[0].redacted_args
+
+
+class TestRejectedRunsAreStillCounted:
+    """モデルが答えた時点で課金は済んでいる。recordにならなくてもtraceは残す。
+
+    実測(2026-08-02): 契約検証で落ちた実行は RunRecord も trace も0件で、約5分ぶんの
+    推論が完全に不可視になった。「保存されたrunが必ずtraceを持つ」は要件だが、
+    その逆は実装の副作用でしかない。契約伝達の改善効果(§19.7)は、捨てた回数と金額が
+    見えて初めて測れる。
+    """
+
+    @staticmethod
+    def _rejecting_runner(tmp_path: Path, input_text: str = "x") -> tuple[SkillRunner, str]:
+        """Run a contract-breaking output and return the runner plus the minted run_id.
+
+        The run_id has to be known up front: the call raises, so there is no result to
+        read it from — which is precisely the situation that used to leave no trace.
+        """
+        broken = make_envelope()
+        broken["artifacts"][0]["content"] = {"assignments": "not-an-array"}
+        runner, _ = make_runner(tmp_path, [broken])
+        runner = replace(runner, id_factory=fixed_id_factory())
+        expected_run_id = fixed_id_factory().new_trace_context().run_id
+
+        with pytest.raises(ArtifactValidationError):
+            runner.run(SKILL, input_text=input_text, source_refs=SOURCE_REFS, agent="pytest")
+        return runner, expected_run_id
+
+    def test_a_rejected_run_still_records_its_cost(self, tmp_path: Path) -> None:
+        runner, run_id = self._rejecting_runner(tmp_path)
+
+        records = runner.trace_store.find_by_run_id(run_id)
+
+        assert len(records) == 1, "課金済みの呼び出しが1件も記録されていない"
+        assert records[0].status == "rejected"
+        assert "usage" in records[0].redacted_args
+
+    def test_a_rejected_run_is_distinguishable_from_a_stored_one(self, tmp_path: Path) -> None:
+        # 同じ status だと「捨てた回数」を集計できない
+        rejecting, rejected_id = self._rejecting_runner(tmp_path)
+        ok_runner, _ = make_runner(tmp_path / "ok", [make_envelope()])
+        stored = ok_runner.run(SKILL, input_text="x", source_refs=SOURCE_REFS, agent="pytest")
+
+        rejected_status = rejecting.trace_store.find_by_run_id(rejected_id)[0].status
+        stored_status = ok_runner.trace_store.find_by_run_id(stored.run_id)[0].status
+
+        assert rejected_status != stored_status
+
+    def test_a_rejected_run_leaves_no_run_record(self, tmp_path: Path) -> None:
+        # traceを残すようにしても、契約違反の出力が監査記録になってはいけない
+        runner, _ = self._rejecting_runner(tmp_path)
+
+        assert runner.run_store.run_ids() == ()
+
+    def test_prompt_text_does_not_leak_on_the_rejected_path_either(self, tmp_path: Path) -> None:
+        # §15.4は失敗経路でも同じ。新しい書き込み経路を作ったので別途固定する
+        marker = "UNTRUSTED-DATA-MARKER-rejected-7c1e"
+        runner, run_id = self._rejecting_runner(tmp_path, input_text=marker)
+
+        dumped = json.dumps(
+            [record.redacted_args for record in runner.trace_store.find_by_run_id(run_id)]
+        )
+
+        assert marker not in dumped
 
     def test_prompt_text_never_reaches_the_trace_store(self, tmp_path: Path) -> None:
         # §15.4: prompt本文はTrace Storeに載せない(記録先はADR-0005 Decision 7の担当)
