@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-02 [process-learning] mutation checkはテストの穴だけでなく「到達不能な防御コード」も見つける(ADR-0010実装時)
+
+- 事実(何を観測したか): `schema_ref` のveridia側resolverに、(a) 解決結果が `schemas/` 直下から出ていないかのtraversal検査と、(b) 実在ファイル名のallowlist検査を両方置いた。mutation checkで (a) を削除したところ **テストが1件も落ちなかった**。調べると、allowlistは `Path.name` の集合との完全一致であり、区切り文字や `..` を含む文字列は定義上どれにも一致しない。つまり (a) は (b) に完全に包含されており、**一度も発火しえないコードだった**。テストを足しても発火させられない。
+- 学び(なぜ・何を変えるべきか): 「防御コードは正常系テストでは一生発火しない」(2026-07-03)への対処としてmutation checkを回してきたが、生存したmutantは**テストの穴とは限らない** — 「そのコードが最初から不要」という診断でもある。生存を見たら、まず「このコードが発火する入力は存在するか」を確認する。存在しないなら、テストを足すのではなく**コードを消す**のが正しい。残すと、実際には効いていない防御を効いていると誤読させる(次の読み手が (b) を弱めても (a) が守ると思ってしまう)。あわせて、消した事実と理由をコード側に残す — でないと「traversal検査が無い」と見えて再び足される。
+- アクション(変更したもの・リンク): `artifact_validator/schema_ref.py::_veridia_filename` からtraversal検査を削除し、allowlistがtraversal防御を兼ねている旨と、削除の経緯(mutation checkで生存した)をdocstringに記した。regression guard: `tests/test_schema_ref_routing.py::TestVeridiaRefResolution::test_unroutable_veridia_ref_raises`(`../pyproject.toml` を含む)。
+
 ## 2026-08-02 [process-learning] 実在repoを触るテストは、そのrepoの「履歴の深さ」に暗黙依存する(CIはshallow clone)
 
 - 事実(何を観測したか): T-026で設定差し替えを実証するテストが、実在repo(veridia自身と `vendor/sqk-core`)に対して `HEAD~1`〜`HEAD` のrangeを読んでいた。ローカルは全履歴なので緑、**CIは `actions/checkout` の既定が shallow clone のため `fatal: Needed a single revision` で2件落ちた**。手元で緑・CIで赤という典型形だが、原因はコードでも依存でもなく「テストが実行環境の履歴の深さという環境状態に依存していた」ことである。

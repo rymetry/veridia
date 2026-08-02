@@ -19,7 +19,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from artifact_validator import validate_handoff_envelope
+from artifact_validator import declares_sqk_core_contract, validate_handoff_envelope
 from run_store import RunStore, build_run_record
 from trace_ids import IdFactory, TraceContext
 from trace_store import RUN_METRICS_EVENT, TraceStore
@@ -31,6 +31,7 @@ from skill_runner.llm_client import LLMClient, Prompt
 from skill_runner.skill_source import SqkSkillSource
 
 SQK_ROOT = Path(__file__).resolve().parent.parent / "vendor" / "sqk-core"
+ARTIFACTS_FIELD = "artifacts"
 SUCCESS_STATUS = "success"
 GIT_TIMEOUT_SECONDS = 5
 
@@ -104,8 +105,13 @@ class SkillRunner:
             agent=agent,
             model=response.model,
             source_refs=list(source_refs),
-            sqk_core_commit=_pinned_sqk_core_commit(),
             created_at=datetime.now(UTC),
+            # Only a run that actually used a sqk-core contract pins its SHA (ADR-0010)
+            sqk_core_commit=(
+                _pinned_sqk_core_commit()
+                if declares_sqk_core_contract(envelope.get(ARTIFACTS_FIELD))
+                else None
+            ),
         )
         record_path = self.run_store.save(record)
         self._record_run_metrics(skill_name, context, response)

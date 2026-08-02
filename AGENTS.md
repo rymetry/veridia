@@ -18,7 +18,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec。**正本**(ADR-0002) | 稼働中 |
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
-| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**: veridia契約(`schemas/`、`artifact_type` でルーティング)と sqk-core契約(`vendor/sqk-core/schemas/`、`schema_ref` でルーティング。[ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
+| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**。artifact単体は `artifact_type` でルーティング。handoff-envelope内のartifactは `schema_ref` の名前空間でルーティングし、`schemas/…` はsqk-core契約、`veridia://schemas/…` はveridia契約([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md) / [ADR-0010](docs/decisions/adr-0010-handoff-envelope-for-both-contract-families.md))。**family間のフォールバックはしない** | 稼働中 |
 | `skill_runner/` | sqk-core skillの隔離実行境界(LLMClient / SkillRunner)。[ADR-0005](docs/decisions/adr-0005-llm-skill-execution.md) / [ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md) | 稼働中 |
 | `run_store/` | sqk-core skill実行の監査ラッパー(RunRecord)生成と保存([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
 | `gate_evaluator/` | `policies/gate-policy.yaml` を読みrunを評価してGateDecision(§6.24)を出す。現在の実装gateは `source_grounding` のみで、残りは `inconclusive`(T-057) | 稼働中 |

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://veridia.dev/schemas/run-record.schema.json",
-  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "$comment": "schema semver: 0.3.0。破壊的変更はADR起票後に行う(schemas/README.md)。0.3.0: sqk_core を条件付き必須へ(ADR-0010)",
   "title": "RunRecord",
   "description": "sqk-core skillの1回の実行を、veridiaが監査可能な形で保存する単位(ADR-0007)。sqk-coreのhandoff-envelopeをそのまま`envelope`に格納し、veridia側の監査項目を外側に付す(field mappingではなくwrapping)。\n\n**ArtifactBase(§6.1)を継承しない。** RunRecordはagent/skillの成果物(artifact)ではなく、artifactを運ぶ実行の記録である。ArtifactBase必須の`confidence`はrunに対して意味を持たず、値を埋めれば捏造になる(learning-log 2026-07-02「契約の必須度は最初のproducerのDoDと突き合わせる」)。`artifact_type`のみ、artifact_validatorのルーティングのために持つ。",
   "type": "object",
@@ -14,7 +14,7 @@
     "version": {
       "type": "string",
       "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
-      "description": "本schemaのversion(semver)。envelope側の契約versionはsqk_core.commitが決める"
+      "description": "本schemaのversion(semver)。envelope側の契約versionは、sqk-core契約なら `sqk_core.commit`、veridia契約ならartifact自身の `version` が持つ"
     },
     "run_id": {
       "type": "string",
@@ -73,7 +73,7 @@
         "commit"
       ],
       "additionalProperties": false,
-      "description": "契約の出所。SHA固定が更新手段(ADR-0006)であるため、どのSHAの契約を満たすrecordかを残さないと後から解釈できない"
+      "description": "envelopeが準拠するsqk-core契約のcommit SHA(full)。**条件付き**: envelopeが sqk-core の `schema_ref` を1つでも宣言しているときは必須、していないとき(veridia自前skillの実行)は禁止する(ADR-0010 Decision 3)。強制はproducer(`run_store.build_run_record`)が行う — envelope内の schema_ref を見て条件分岐するJSON Schemaは書けるが壊れやすく読めない。「無くてよい」ではなく条件付きにするのは、無関係なSHAが入ったrecordを後から弾けるようにするため。veridia自前契約の版はartifact自身の `version`(semver)が持つ"
     },
     "status": {
       "type": "string",
@@ -101,7 +101,6 @@
     "created_at",
     "created_by",
     "source_refs",
-    "sqk_core",
     "status",
     "requires_human_review",
     "envelope"

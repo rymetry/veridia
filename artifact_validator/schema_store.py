@@ -55,12 +55,27 @@ def artifact_type_to_schema() -> dict[str, str]:
 
 @cache
 def validator_for_artifact_type(artifact_type: str) -> Draft202012Validator:
-    schema_filename = artifact_type_to_schema()[artifact_type]
+    return validator_for_schema_file(artifact_type_to_schema()[artifact_type])
+
+
+@cache
+def validator_for_schema_file(filename: str) -> Draft202012Validator:
+    """Build a validator for one veridia schema file.
+
+    The registry is required, not optional: veridia schemas reference each other by
+    relative filename (`artifact-base.schema.json`), which a bare validator cannot
+    resolve (schemas/README.md).
+    """
     return Draft202012Validator(
-        load_schema(schema_filename),
+        load_schema(filename),
         registry=schema_registry(),
         format_checker=format_checker(),
     )
+
+
+def schema_filenames() -> tuple[str, ...]:
+    """Every veridia schema filename, sorted. Includes the base schema."""
+    return tuple(sorted(path.name for path in SCHEMAS_DIR.glob(SCHEMA_GLOB)))
 
 
 @cache

@@ -16,8 +16,8 @@ from artifact_validator import (
     ArtifactValidationError,
     SqkSchemaError,
     sqk_schema_store,
+    validate_envelope_artifact,
     validate_handoff_envelope,
-    validate_sqk_artifact,
 )
 from artifact_validator.sqk_schema_store import (
     SQK_SCHEMAS_DIR,
@@ -78,13 +78,13 @@ class TestSqkFixtureContract:
     @pytest.mark.parametrize("case", _fixture_cases("valid"), ids=_case_id)
     def test_valid_fixture_passes(self, case: tuple[str, Path]) -> None:
         schema_ref, fixture = case
-        validate_sqk_artifact(_load(fixture), schema_ref=schema_ref)
+        validate_envelope_artifact(_load(fixture), schema_ref=schema_ref)
 
     @pytest.mark.parametrize("case", _fixture_cases("invalid"), ids=_case_id)
     def test_invalid_fixture_is_rejected(self, case: tuple[str, Path]) -> None:
         schema_ref, fixture = case
         with pytest.raises(ArtifactValidationError):
-            validate_sqk_artifact(_load(fixture), schema_ref=schema_ref)
+            validate_envelope_artifact(_load(fixture), schema_ref=schema_ref)
 
 
 class TestHandoffEnvelope:
@@ -103,7 +103,7 @@ class TestHandoffEnvelope:
     def test_envelope_shape_alone_is_a_weaker_check(self) -> None:
         """envelope単体の検証はpayload契約を見ない。二層検証が要る理由(sqk-core#48の教訓)。"""
         envelope = _load(FIXTURES_DIR / "handoff-envelope" / "valid" / "risk-analysis-handoff.json")
-        validate_sqk_artifact(envelope, schema_ref="schemas/handoff-envelope.schema.json")
+        validate_envelope_artifact(envelope, schema_ref="schemas/handoff-envelope.schema.json")
 
     def test_broken_envelope_shape_is_reported(self) -> None:
         envelope = _load(
