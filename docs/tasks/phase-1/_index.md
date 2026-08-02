@@ -2,7 +2,7 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-08-02 / 全34タスク(not_started: 28 / done: 6)
+生成日: 2026-08-02 / 全34タスク(not_started: 27 / done: 7)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
@@ -11,7 +11,7 @@ frontmatterから再生成する集約ビュー。**手で編集しない**(stat
 | [T-026](T-026-source-connector-minimal.md) | phase1-setup | done | T-024 | Source Connector最小版(OQ-4決定 + 対象repo PR diff取得) |
 | [T-027](T-027-skill-runner-minimal.md) | phase1-setup | done | T-025 | skill実行基盤最小版(skill runner) |
 | [T-028](T-028-source-map-schema.md) | grounding-oracle | done | - | SourceMap schema定義 |
-| [T-029](T-029-source-grounding-skill.md) | grounding-oracle | not_started | T-026, T-027, T-028 | `source-grounding` skill(W1: PR diff → SourceMap) |
+| [T-029](T-029-source-grounding-skill.md) | grounding-oracle | done | T-026, T-027, T-028 | `source-grounding` skill(W1: PR diff → SourceMap) |
 | [T-030](T-030-requirement-risk-analysis-skill.md) | grounding-oracle | not_started | T-029 | `requirement-risk-analysis` skill(W2: 要求・リスク候補生成) |
 | [T-031](T-031-human-review-flow.md) | grounding-oracle | not_started | T-030 | human reviewフロー + source grounding gate配線 |
 | [T-032](T-032-oracle-selection-skill.md) | grounding-oracle | not_started | T-030, T-031 | `oracle-selection` skill(W7: P0/P1要求へOracleSpec候補付与) |

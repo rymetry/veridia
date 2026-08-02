@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/source-grounding/output.schema.json",
+  "$comment": "skill schema semver: 0.1.0。artifact契約の正本は schemas/source-map.schema.json であり、ここでは複製しない",
+  "title": "SourceGroundingOutput",
+  "description": "W1の出力。handoff envelope 1件で、artifactsは SourceMap 1件。**SourceMapの構造はここで再定義しない** — 正本は schemas/source-map.schema.json であり、`veridia://schemas/source-map.schema.json` を通じて artifact_validator が検証する(ADR-0010)。ここで縛るのはenvelope側の形だけ",
+  "type": "object",
+  "properties": {
+    "source_skill": { "const": "source-grounding" },
+    "phase": { "type": "string", "minLength": 1 },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "type": { "const": "SourceMap" },
+          "schema_ref": { "const": "veridia://schemas/source-map.schema.json" },
+          "content": { "type": "object" }
+        },
+        "required": ["type", "schema_ref", "content"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 1
+    },
+    "trace_ids": { "type": "array", "items": { "type": "string" } },
+    "assumptions": { "type": "array" },
+    "open_questions": { "type": "array", "items": { "type": "string" } },
+    "gate_status": { "type": "string", "enum": ["passed", "passed-with-risks", "blocked"] }
+  },
+  "required": ["source_skill", "phase", "artifacts", "trace_ids", "assumptions", "open_questions", "gate_status"],
+  "additionalProperties": false
+}

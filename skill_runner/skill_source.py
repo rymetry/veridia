@@ -14,6 +14,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
 import yaml
 
@@ -39,6 +40,24 @@ class SkillDefinition:
     def instruction_text(self) -> str:
         """The text handed to the model as the instruction half of the prompt."""
         return self.body.strip()
+
+
+class SkillSource(Protocol):
+    """Where `SkillRunner` reads skills from.
+
+    Two implementations exist because two skill families exist, mirroring the two
+    contract families (ADR-0010): `SqkSkillSource` reads the pinned sqk-core submodule,
+    `QaSkillSource` reads veridia's own `qa-skills/` packages. `SkillRunner` depends on
+    this protocol so neither family is privileged.
+    """
+
+    def available(self) -> tuple[str, ...]:
+        """Every loadable skill name, sorted."""
+        ...
+
+    def load(self, name: str) -> SkillDefinition:
+        """Load one skill by name."""
+        ...
 
 
 @dataclass(frozen=True)

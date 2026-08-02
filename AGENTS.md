@@ -16,10 +16,10 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `docs/operations/` | 運用runbook・RACI・KPI運用(Phase 1以降に整備) | 予定地 |
 | `docs/archive/` | 旧版・レビュー文書 | - |
 | `schemas/` | Artifact JSON Schema(North Star §6)。ArtifactBase + 各spec。**正本**(ADR-0002) | 稼働中 |
-| `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
+| `qa-skills/` | QAプラットフォームのskill package(North Star §7.1)。実skillは `source-grounding`(W1、T-029)。`_template` はコピー元であり実行対象ではない | 稼働中 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
 | `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**。artifact単体は `artifact_type` でルーティング。handoff-envelope内のartifactは `schema_ref` の名前空間でルーティングし、`schemas/…` はsqk-core契約、`veridia://schemas/…` はveridia契約([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md) / [ADR-0010](docs/decisions/adr-0010-handoff-envelope-for-both-contract-families.md))。**family間のフォールバックはしない** | 稼働中 |
-| `skill_runner/` | sqk-core skillの隔離実行境界(LLMClient / SkillRunner)。[ADR-0005](docs/decisions/adr-0005-llm-skill-execution.md) / [ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md) | 稼働中 |
+| `skill_runner/` | skillの隔離実行境界(LLMClient / SkillRunner)。skillの読み込み元は2系統で、どちらも `SkillSource` protocol: `SqkSkillSource`(sqk-core submodule)と `QaSkillSource`(`qa-skills/`)。モデルが決めてよくない値(`trust_level` 等)は `authoritative_fields` で検証前に上書きする。[ADR-0005](docs/decisions/adr-0005-llm-skill-execution.md) / [ADR-0009](docs/decisions/adr-0009-contract-ownership-boundary.md) / [ADR-0010](docs/decisions/adr-0010-handoff-envelope-for-both-contract-families.md) | 稼働中 |
 | `run_store/` | sqk-core skill実行の監査ラッパー(RunRecord)生成と保存([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
 | `gate_evaluator/` | `policies/gate-policy.yaml` を読みrunを評価してGateDecision(§6.24)を出す。現在の実装gateは `source_grounding` のみで、残りは `inconclusive`(T-057) | 稼働中 |
 | `source_connector/` | 対象repoのcommit rangeからdiffと変更ファイルを取得するW1入力境界(§5.1)。対象はコードではなく環境変数で指定する(T-026) | 稼働中 |

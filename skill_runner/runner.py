@@ -28,10 +28,12 @@ from skill_runner.contract_note import contract_note
 from skill_runner.envelope_schema import portable_envelope_schema
 from skill_runner.errors import SkillRunnerError
 from skill_runner.llm_client import LLMClient, Prompt
-from skill_runner.skill_source import SqkSkillSource
+from skill_runner.skill_source import SkillSource, SqkSkillSource
 
 SQK_ROOT = Path(__file__).resolve().parent.parent / "vendor" / "sqk-core"
 ARTIFACTS_FIELD = "artifacts"
+CONTENT_FIELD = "content"
+ITEMS_FIELD = "items"
 SUCCESS_STATUS = "success"
 GIT_TIMEOUT_SECONDS = 5
 
@@ -53,7 +55,7 @@ class SkillRunner:
     llm_client: LLMClient
     run_store: RunStore
     trace_store: TraceStore
-    skill_source: SqkSkillSource = SqkSkillSource()
+    skill_source: SkillSource = SqkSkillSource()
     id_factory: IdFactory = IdFactory()
 
     def run(
@@ -64,8 +66,14 @@ class SkillRunner:
         source_refs: Sequence[str],
         agent: str,
         data_refs: Sequence[str] = (),
+        authoritative_fields: Mapping[str, Any] | None = None,
     ) -> SkillRunResult:
         """Run one skill end to end and return the stored record.
+
+        `authoritative_fields` are values whose authority is **not** the model: they are
+        written over every produced artifact before validation, whatever the model said
+        (ADR-0009 Decision 2 / ADR-0010). `trust_level` is the first of them — a trust
+        label the labelled party writes about itself is a gate it can walk around.
 
         Raises:
             SkillNotFoundError / SkillSourceError: the skill could not be loaded.
@@ -95,7 +103,7 @@ class SkillRunner:
             output_schema=portable_envelope_schema(skill.output_schema_refs),
         )
 
-        envelope = response.output
+        envelope = _with_authoritative_fields(response.output, authoritative_fields)
         validate_handoff_envelope(envelope)
 
         record = build_run_record(
@@ -143,6 +151,41 @@ class SkillRunner:
             ended_at=now,
             redacted_args=_metrics(response),
         )
+
+
+def _with_authoritative_fields(
+    envelope: Mapping[str, Any],
+    fields: Mapping[str, Any] | None,
+) -> dict[str, Any]:
+    """Return a copy of the envelope with non-model-owned fields written over.
+
+    Overwriting is unconditional: checking "did the model already set it?" would let a
+    model keep its own value by supplying one, which is exactly the bypass this closes.
+    The envelope is not mutated — the caller's object stays as the model returned it.
+    """
+    copied = dict(envelope)
+    if not fields:
+        return copied
+    artifacts = copied.get(ARTIFACTS_FIELD)
+    if not isinstance(artifacts, list):
+        return copied
+    copied[ARTIFACTS_FIELD] = [_artifact_with_fields(artifact, fields) for artifact in artifacts]
+    return copied
+
+
+def _artifact_with_fields(artifact: Any, fields: Mapping[str, Any]) -> Any:
+    if not isinstance(artifact, Mapping):
+        return artifact
+    updated = dict(artifact)
+    content = updated.get(CONTENT_FIELD)
+    if isinstance(content, Mapping):
+        updated[CONTENT_FIELD] = {**content, **fields}
+    items = updated.get(ITEMS_FIELD)
+    if isinstance(items, list):
+        updated[ITEMS_FIELD] = [
+            {**item, **fields} if isinstance(item, Mapping) else item for item in items
+        ]
+    return updated
 
 
 def _instructions(skill: Any) -> str:
