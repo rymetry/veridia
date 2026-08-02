@@ -123,9 +123,8 @@ class TestHandoffEnvelope:
         The embedded item has `id` + `statement` but `risk-item.schema.json` also requires
         `category` / `likelihood` / `impact` / `treatment`.
 
-        Reported upstream per `docs/plan/sqk-core-integration.md` §5. This test pins the
-        current behaviour; remove it once the sqk-core fixture is corrected and the SHA
-        is bumped.
+        Reported upstream as rymetry/sqk-core#48. This test pins the current behaviour;
+        remove it once that issue is fixed and the submodule SHA is bumped.
         """
         envelope = _load(FIXTURES_DIR / "handoff-envelope" / "valid" / "risk-analysis-handoff.json")
         with pytest.raises(ArtifactValidationError) as excinfo:

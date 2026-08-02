@@ -367,41 +367,6 @@ class TestChangeImpactSpecValues:
         validator_for(CHANGE_IMPACT_SPEC_SCHEMA).validate(instance)
 
 
-@pytest.mark.parametrize(
-    ("schema_filename", "title", "artifact_type"),
-    [
-        (TEST_ASSET_INDEX_SCHEMA, "TestAssetIndex", TEST_ASSET_INDEX_TYPE),
-        (CHANGE_IMPACT_SPEC_SCHEMA, "ChangeImpactSpec", CHANGE_IMPACT_SPEC_TYPE),
-    ],
-)
-class TestGeneratedModels:
-    def _model_class(self, schema_filename: str, title: str) -> type:
-        import importlib
-
-        from gen_models import module_name_for
-
-        module_name = module_name_for(schema_filename).removesuffix(".py")
-        module = importlib.import_module(f"models.{module_name}")
-        return getattr(module, title)
-
-    def test_generated_model_accepts_schema_example(
-        self, schema_filename: str, title: str, artifact_type: str
-    ) -> None:
-        example = load_schema(schema_filename)["examples"][0]
-        model = self._model_class(schema_filename, title)(**example)
-        assert model.artifact_type == artifact_type or (
-            getattr(model.artifact_type, "value", None) == artifact_type
-        )
-
-    def test_generated_model_rejects_missing_domain_field(
-        self, schema_filename: str, title: str, artifact_type: str
-    ) -> None:
-        _ = artifact_type
-        from pydantic import ValidationError as PydanticValidationError
-
-        required = set(load_schema(schema_filename)["required"]) - {"artifact_type"}
-        first_required = sorted(required)[0]
-        example = load_schema(schema_filename)["examples"][0]
-        broken = {k: v for k, v in example.items() if k != first_required}
-        with pytest.raises(PydanticValidationError):
-            self._model_class(schema_filename, title)(**broken)
+# 生成Pydanticモデルのsmoke検証は ADR-0008 で models/ とともに削除した。
+# example の妥当性は TestValidInstances、domain required は TestDomainRequiredMissing が
+# 生JSON側でカバーする。

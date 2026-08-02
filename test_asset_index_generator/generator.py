@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import subprocess
 from pathlib import Path
 from typing import Any
 
 from test_asset_index_generator.discovery import TestAsset, discover_pytest_assets
 
+GIT_TIMEOUT_SECONDS = 5
 ARTIFACT_VERSION = "0.1.0"
 ARTIFACT_TYPE = "test_asset_index"
 DEFAULT_GENERATED_AT = "1970-01-01T00:00:00Z"
@@ -80,10 +82,43 @@ def _asset_to_dict(asset: TestAsset) -> dict[str, Any]:
 
 
 def _repository_name(repository_path: Path) -> str:
-    name = repository_path.resolve().name
+    """Derive the repository name, preferring git over the directory basename.
+
+    A git worktree lives under a directory named after the worktree, not the repository
+    (e.g. `.claude/worktrees/<branch-slug>/`), so the basename would record the wrong
+    repository in the artifact. `--git-common-dir` resolves to the main checkout's `.git`
+    in both a worktree and a normal clone, so its parent is the repository root.
+
+    Falls back to the basename when the path is not a git checkout (a valid input: the
+    generator scans plain directories too).
+    """
+    resolved = repository_path.resolve()
+    name = _git_repository_name(resolved) or resolved.name
     if not name:
         raise ValueError(f"failed to derive repository name from path: {repository_path}")
     return name
+
+
+def _git_repository_name(repository_path: Path) -> str | None:
+    try:
+        completed = subprocess.run(  # noqa: S603 - fixed argv, no shell, no user input
+            ["git", "-C", str(repository_path), "rev-parse", "--git-common-dir"],
+            capture_output=True,
+            text=True,
+            timeout=GIT_TIMEOUT_SECONDS,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if completed.returncode != 0:
+        return None
+
+    common_dir = completed.stdout.strip()
+    if not common_dir:
+        return None
+    # relative when git is run inside the main checkout, absolute inside a worktree
+    resolved_common = (repository_path / common_dir).resolve()
+    return resolved_common.parent.name or None
 
 
 def _fingerprint(

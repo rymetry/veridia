@@ -20,7 +20,7 @@
 
 - 事実(何を観測したか): veridia側で `handoff-envelope` の内包artifactを `artifacts[].schema_ref` に対して検証する実装を入れた直後、sqk-core の**valid fixture** `schemas/tests/fixtures/handoff-envelope/valid/risk-analysis-handoff.json` が落ちた。内包する RiskItem が `{id, statement}` の2fieldしか持たず、`risk-item.schema.json` が要求する `category` / `likelihood` / `impact` / `treatment` を欠いていた。原因を追うと、sqk-core の `scripts/validate-schemas.sh` は各fixtureを**自分のschemaに対してのみ**検証しており、`handoff-envelope.artifacts[].items` が制約なしのarrayであるため、内包payloadは宣言した `schema_ref` に対して一度も検証されない構造だった。
 - 学び(なぜ・何を変えるべきか): envelope方式は「transport構造」と「payload契約」の2層になるが、片方だけを検証するハーネスでは層の継ぎ目が無検査になる。これはveridia固有の問題ではなく、envelopeを受け取る全consumer(claude-code / gpts / codex / veridia)が同じ穴を踏む。したがって**修正はveridia側ではなくsqk-coreの検証ハーネスに入れるべき**で、veridia側の境界検証は二重防御として残す。分離リポジトリ構成の価値はここに出る(マージしていればveridia1件の修正で終わり、他3プラットフォームには届かない)。
-- アクション(変更したもの・リンク): 事実を `tests/test_sqk_schema_validation.py::TestHandoffEnvelope::test_envelope_payload_gap_in_sqk_core_fixture` に固定(docstringにSHA更新後の削除条件を明記)。sqk-coreへのIssue起票は未実施([統合方針 §5](../plan/sqk-core-integration.md) の経路。public repoのため起票操作はオーナーが行う)。
+- アクション(変更したもの・リンク): 事実を `tests/test_sqk_schema_validation.py::TestHandoffEnvelope::test_envelope_payload_gap_in_sqk_core_fixture` に固定(docstringにSHA更新後の削除条件を明記)。sqk-coreへ [Issue #48](https://github.com/rymetry/sqk-core/issues/48) を起票([統合方針 §5](../plan/sqk-core-integration.md) の経路。フィードバックループの初回稼働)。
 
 ## 2026-08-01 [process-learning] 検証は作業ツリーではなくコミット済み内容に対して行う(git addの部分失敗を握り潰したcommitが検証を素通りした)
 
