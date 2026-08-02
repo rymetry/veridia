@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/schemas/gate-decision.schema.json",
+  "$comment": "schema semver: 0.1.0。破壊的変更はADR起票後に行う(schemas/README.md)",
+  "title": "GateDecision",
+  "description": "quality gate評価の結果記録(North Star §6.24)。ADR-0007でveridia自身が定義すると決めた4契約の4本目。\n\n**ArtifactBase(§6.1)を継承しない。** producerは決定的なgate評価器であり、ArtifactBase必須の `confidence` に対応する較正済みの値を持たない。`created_by` の `skill` / `model` も同様で、値を埋めれば3 field分の捏造になる(learning-log「契約の必須度は最初のproducerのDoDと突き合わせる」)。`artifact_type` のみ、artifact_validatorのルーティングのために持つ。RunRecordの非継承理由(artifactではなく入れ物)とは別の理由であり、§6.1改訂提案に対する3件目のproducer証拠でもある。\n\n**§6.24からの差分と理由:**\n- `release_candidate` はnullを許す。Phase 1の評価対象はrelease candidateではなく1回のskill run(評価対象の識別は `evidence_refs`)\n- `gate_results` / `policy_version` / `subject_declared_status` を追加した。§6.24の `blocking_reasons` / `warning_reasons` は人間向けの要約であり、どのgateがどのstageでどう判定されたか(特にinconclusive)を残さないと監査で再現できないため\n- `release_readiness_report_ref` / `residual_risk_report_ref` / `residual_risks` / `human_approvals` / `report_refs` は定義しない。Phase 1にproducerが無く、必須にすればもちろんoptionalにしても埋める主体がいない(just-in-time、§5.4.1)。producerが出る時点でschema semverを上げて追加する",
+  "type": "object",
+  "$defs": {
+    "gateResult": {
+      "type": "object",
+      "properties": {
+        "gate": {
+          "type": "string",
+          "minLength": 1,
+          "description": "`policies/gate-policy.yaml` のgate key(例: source_grounding)"
+        },
+        "stage": {
+          "type": "string",
+          "enum": ["shadow", "warn", "block"],
+          "description": "評価時点のGatePolicy stage(§17.0)。policyは可変なので判定時のstageをrecordへ焼き込む"
+        },
+        "outcome": {
+          "type": "string",
+          "enum": ["pass", "fail", "inconclusive"],
+          "description": "gate単体の判定。評価器が無い、または入力が未収集のgateは `inconclusive` であって `pass` ではない(T-054 DoD「黙ってpass扱いにしない」)"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "description": "判定理由。passも含め全outcomeで必須にする。理由の無いinconclusiveは「評価していない」と区別できず、後から再現できない"
+        }
+      },
+      "required": ["gate", "stage", "outcome", "reason"],
+      "additionalProperties": false,
+      "description": "1 gateの判定。evidence_refsはgate単位では持たない(Phase 1のevidenceは評価対象のrun自身で、top-levelの `evidence_refs` が正本)"
+    }
+  },
+  "properties": {
+    "artifact_type": {
+      "type": "string",
+      "const": "gate_decision",
+      "description": "artifact_validatorのルーティングキー。ArtifactBase継承ではなく単独宣言"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)$",
+      "description": "本schemaのversion(semver)"
+    },
+    "gate_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "gate評価の識別子(例: GATE-run-20260802-0001)。評価対象runから決定的に導出する。同じrunを再評価すると同じidになり、前回の判定を置き換える"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "判定時刻(RFC 3339。timezone必須。artifact_validatorのFormatCheckerが強制する)"
+    },
+    "policy_version": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?(?:\\+[0-9A-Za-z-]+(?:\\.[0-9A-Za-z-]+)*)?$",
+      "description": "判定に使ったGatePolicyの `policy_version`(§17.2「変更はGatePolicyのversionとして記録」)。閾値較正でstageが動くため、どのpolicyでの判定かを残さないと過去の判定を評価できない"
+    },
+    "release_candidate": {
+      "type": ["string", "null"],
+      "description": "判定対象のrelease candidate(§6.24)。Phase 1はrun単位で評価するためnullを許す。値がある場合はrelease判定、nullの場合はrun単位の判定と読む"
+    },
+    "subject_declared_status": {
+      "type": ["string", "null"],
+      "enum": ["passed", "passed-with-risks", "blocked", null],
+      "description": "評価対象が自己申告したgate status(sqk-core handoff-envelopeの `gate_status`)。**通過の根拠には使わない**(自己申告の信頼ラベルは自己申告で迂回できる。learning-log 2026-08-02)。`blocked` / `passed-with-risks` のときだけ判定を厳しい側へ動かす一方向の入力として扱う。宣言が読み取れなかった場合はnull(「宣言が無い」と「評価していない」を区別する)"
+    },
+    "decision": {
+      "type": "string",
+      "enum": ["pass", "warn", "block"],
+      "description": "gate群と `subject_declared_status` を集約した最終判定(§6.24)。block stageのgate failまたは自己申告blockedでblock、warn stageのfailかblock/warn stageのinconclusiveでwarn"
+    },
+    "gate_results": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/gateResult" },
+      "minItems": 1,
+      "description": "GatePolicyに定義された全gateの判定。評価器が無いgateもinconclusiveとして列挙する(未評価を沈黙させない)"
+    },
+    "blocking_reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "blockの理由(§6.24)。`gate_results` と `subject_declared_status` からの人間向け射影であり、独立した入力ではない。pass / warnでは空配列"
+    },
+    "warning_reasons": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "description": "warnの理由(§6.24)。inconclusiveなgateはここへ現れる。passでは空配列"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "何を評価した判定かへの参照(§6.24。Phase 1は評価対象のrun_id)。空を許すと対象不明の判定recordが残るため minItems: 1"
+    }
+  },
+  "required": [
+    "artifact_type",
+    "version",
+    "gate_id",
+    "created_at",
+    "policy_version",
+    "subject_declared_status",
+    "decision",
+    "gate_results",
+    "blocking_reasons",
+    "warning_reasons",
+    "evidence_refs"
+  ],
+  "additionalProperties": false,
+  "examples": [
+    {
+      "artifact_type": "gate_decision",
+      "version": "0.1.0",
+      "gate_id": "GATE-run-20260802-0001",
+      "created_at": "2026-08-02T09:00:00Z",
+      "policy_version": "0.1.0",
+      "release_candidate": null,
+      "subject_declared_status": "passed-with-risks",
+      "decision": "warn",
+      "gate_results": [
+        {
+          "gate": "source_grounding",
+          "stage": "block",
+          "outcome": "pass",
+          "reason": "source_refs declares 1 reference"
+        },
+        {
+          "gate": "oracle",
+          "stage": "block",
+          "outcome": "inconclusive",
+          "reason": "no evaluator implemented for gate 'oracle'"
+        }
+      ],
+      "blocking_reasons": [],
+      "warning_reasons": [
+        "gate 'oracle' (stage block) is inconclusive: no evaluator implemented for gate 'oracle'",
+        "the evaluated subject declared gate_status 'passed-with-risks'"
+      ],
+      "evidence_refs": ["run-20260802-0001"]
+    }
+  ]
+}

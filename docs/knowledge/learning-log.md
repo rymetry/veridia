@@ -4,6 +4,17 @@
 
 ---
 
+## 2026-08-02 [process-learning] 契約が既に強制している条件をgateにすると、そのgateは一生発火しない(T-057)
+
+- 事実(何を観測したか): §17.1のsource grounding gateを最初のgateに選んだ理由は「現状の材料で唯一評価できるから」だった。実装直前に気づいたのは、判定材料である `RunRecord.source_refs` に **schema側が既に `minItems: 1` を課している**ことである。さらに `SkillRunner.run()` も空の `source_refs` を入口で拒否する。つまり正常経路を通ったrecordに対しては、このgateは定義上100%passする。テストは全部緑になり、カバレッジも100%になり、gateは何も守っていない。
+- 学び(なぜ・何を変えるべきか): **gateの実装は「何を判定するか」ではなく「どの経路で来たpayloadを判定するか」で意味が決まる。** contract検証を通った後のpayloadだけを見るgateは、contractの再実行にすぎない。gateが価値を持つのは、contractが通していない経路 — 手書きのrecord、将来の別producer、直接編集されたfile、versionの違う過去record — から来たpayloadに対してである。したがってgate ruleは入力を検証済みobjectとして扱わず、生のMappingとして受け取り、型・存在・空判定を自分で行う。「防御コードは正常系テストでは一生発火しない」(2026-07-03)の変種だが、こちらは**テストの書き方ではなく実装の置き場所の問題**であり、テストを足しても直らない。
+- アクション(変更したもの・リンク): `gate_evaluator/rules.py` のruleは `Mapping[str, Any]` を受け取り、key欠落・非list・空白のみのstringをすべてfailにする。regression guard: `tests/test_gate_evaluator.py::TestSourceGroundingGate`(4種のungrounded payloadでblockすることを実証)。加えて実装へ意図的に6件の欠陥を入れて全件がテストで検出されることを確認した(mutation check)。記録: [T-057](../tasks/phase-1/T-057-gate-decision-source-grounding.md)。
+
+## 2026-08-02 [process-learning] 未実装gateを「安全側」でblockにすると、初日に全runが止まってgateが形骸化する(T-057)
+
+- 事実(何を観測したか): 17 gate中16に評価器が無い状態でgate評価器を作った。未評価gateの扱いとして最初に検討したのは「block stageのgateが判定できないならblockする」だった。これはfail-safeに見えるが、実際には`oracle` / `evidence` / `security` の3つがblock stageで未実装であるため、**すべてのrunが無条件でblockされる**。§17.0が「false blockは1回で10回分の信頼を毀損する」「override常態化でgateは形骸化する」と書いている状態そのものである。
+- 学び(なぜ・何を変えるべきか): 「判定できない」に対する安全な既定値は文脈で反転する。**runtimeの権限判定では deny が安全側だが、開発プロセスのgateでは block は安全側ではない** — 止まったチームはgateを迂回する手段を制度化し、gateは以後どの違反も止められなくなる。3値(`pass` / `fail` / `inconclusive`)を用意し、inconclusiveは「passにはしないがblockもしない = warnへ落として可視化する」に割り当てるのが、精度が立証されるまでの正しい既定値である。ただしこれは「黙ってpassにする」と紙一重なので、(a) 全gateの判定をrecordへ列挙する、(b) 理由を必須にする、(c) 現在のpolicyではpassが出得ないことをテストで固定する、の3点で可視性を担保する。
+- アクション(変更したもの・リンク): `gate_evaluator/results.py::aggregate` がstage別に集約し、block stageのinconclusiveはwarnへ落とす。`schemas/gate-decision.schema.json` の `gateResult.reason` は全outcomeで必須。regression guard: `tests/test_gate_evaluator.py::TestStageDrivesTheDecision::test_todays_real_policy_cannot_yield_pass`(gate実装が進むとこのテストが落ちて状況の変化を知らせる)。記録: [T-057](../tasks/phase-1/T-057-gate-decision-source-grounding.md)。
 ## 2026-08-02 [process-learning] 上流へのフィードバックループが1周した — pinテストは「削除条件を書いておくと自分で落ちて知らせる」
 
 - 事実(何を観測したか): veridiaの境界検証が検出したsqk-coreの不整合(envelope内包payloadが `schema_ref` に対して未検証)を [Issue #48](https://github.com/rymetry/sqk-core/issues/48) として起票したところ、上流は PR #49 / #50 で解決した。**fixtureの修正だけでなく、提案どおり `scripts/check.py` に envelope 検証(CHECK6)が追加**され、再発が構造的に防がれた。veridia側でSHAを `54e78cc` → `01f104d` へ付け替えたところ、壊れた挙動をpinしていた `test_envelope_payload_gap_in_sqk_core_fixture` が `DID NOT RAISE` で落ちた。skill frontmatterの `version` は16本すべて据え置き、schemaの契約変更も無し(差分はfixtureとREADMEのみ)だったため、取り込みは非破壊だった。
