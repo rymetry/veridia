@@ -17,6 +17,7 @@ from pathlib import Path
 
 import pytest
 from source_connector import (
+    TRUST_LEVELS,
     ChangeSet,
     DiffParseError,
     GitCommandError,
@@ -24,6 +25,7 @@ from source_connector import (
     RevisionRangeError,
     SourceConnector,
     TargetRepository,
+    TrustLevelError,
 )
 
 REPO_ROOT = Path(__file__).parent.parent
@@ -31,6 +33,7 @@ SQK_CORE_ROOT = REPO_ROOT / "vendor" / "sqk-core"
 
 REPO_PATH_ENV = "VERIDIA_TARGET_REPO_PATH"
 REPO_LABEL_ENV = "VERIDIA_TARGET_REPO_LABEL"
+REPO_TRUST_ENV = "VERIDIA_TARGET_REPO_TRUST_LEVEL"
 
 
 def make_git_repo(root: Path) -> Path:
@@ -273,10 +276,57 @@ class TestNoCredentialsAreHandled:
                 "git_repository.py",
                 "cli.py",
                 "errors.py",
+                "trust.py",
             )
         )
         for forbidden in ("TOKEN", "PASSWORD", "SECRET", "API_KEY", "GH_TOKEN"):
             assert forbidden not in sources, forbidden
+
+
+class TestTrustLevelAuthorityLivesHere:
+    """信頼ラベルの決定主体はingestion層(ADR-0009 Decision 2)。
+
+    schemaは値域しか縛れず「誰が言ったか」を縛れない。LLMに生成させると、ラベルの
+    生成主体とそれを信頼する主体が同じになり、gateは自己申告で迂回できる
+    (learning-log 2026-08-02)。設定で対象repoを指す行為そのものが信頼の付与なので、
+    `TargetRepository` が値を持つ。
+    """
+
+    def test_configuring_a_target_grants_trust_by_default(self, target_repo: Path) -> None:
+        assert TargetRepository(path=target_repo, label="target").trust_level == "trusted"
+
+    def test_change_set_carries_the_configured_trust_level(self, target_repo: Path) -> None:
+        connector = SourceConnector(
+            repository=TargetRepository(path=target_repo, label="target", trust_level="external")
+        )
+
+        change = connector.fetch_change("HEAD~1", "HEAD")
+
+        assert change.trust_level == "external"
+        assert change.as_dict()["trust_level"] == "external"
+
+    def test_trust_level_can_be_configured_from_the_environment(
+        self, target_repo: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv(REPO_PATH_ENV, str(target_repo))
+        monkeypatch.setenv(REPO_TRUST_ENV, "untrusted")
+
+        assert TargetRepository.from_env().trust_level == "untrusted"
+
+    def test_unknown_trust_level_is_rejected(self, target_repo: Path) -> None:
+        with pytest.raises(TrustLevelError, match="probably-fine"):
+            TargetRepository(path=target_repo, label="target", trust_level="probably-fine")
+
+    def test_allowed_values_are_derived_from_the_schema_not_hardcoded(self) -> None:
+        # 手書きするとschemaが変わったときに黙って乖離する
+        # (learning-log 2026-08-02「伝える内容はschemaから導出する」と同じ理由)
+        import json
+
+        schema = json.loads(
+            (REPO_ROOT / "schemas" / "source-map.schema.json").read_text(encoding="utf-8")
+        )
+
+        assert set(TRUST_LEVELS) == set(schema["properties"]["trust_level"]["enum"])
 
 
 class TestChangeSetIsImmutable:

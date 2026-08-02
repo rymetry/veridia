@@ -27,6 +27,20 @@ CLIの `--repo` / `--label` が環境変数より優先される。
 4. **解決できないrevisionは空diffにしない。** `RevisionRangeError` を送出する。「変更なし」と「refが無い」を取り違えると、後段のgateが素通りする。
 5. **refはSHAへ解決してから記録する。** `HEAD` のような可変refのままでは、同じ `ChangeSet` を後から再現できない。
 
+## `trust_level` — 信頼ラベルの決定主体はここ
+
+`SourceMap.trust_level`([ADR-0009](../docs/decisions/adr-0009-contract-ownership-boundary.md) Decision 2)の値は **`TargetRepository` が持つ**。source-grounding skill(T-029)が出力した値は採用せず上書きする。
+
+schemaは値域しか縛れず「誰が言ったか」を縛れない。ラベルの生成主体とそれを信頼する主体が同じなら、gateは自己申告で迂回できる(learning-log 2026-08-02)。
+
+- 既定は `trusted`。**設定で対象repoを指す行為そのものが信頼の付与**であるため
+- 対象repo以外(外部ドキュメント、issue本文、third party資料)は明示的にラベル付けする。既定へ落とさない
+- 値域は `schemas/source-map.schema.json` の enum から**導出する**(手書きしない。schemaが変わったときに黙って乖離させないため)
+
+| 環境変数 | 内容 | 既定 |
+|---|---|---|
+| `VERIDIA_TARGET_REPO_TRUST_LEVEL` | 対象repoの信頼区分 | `trusted` |
+
 ## `source_refs`
 
 `ChangeSet.source_refs` はそのまま下流artifactの `source_refs` になり、**source grounding gate([T-057](../gate_evaluator/README.md))がこの値を判定する**。

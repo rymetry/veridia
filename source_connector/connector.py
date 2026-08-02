@@ -36,6 +36,8 @@ class ChangeSet:
     changed_files: tuple[ChangedFile, ...]
     diff_text: str
     source_refs: tuple[str, ...]
+    # Supplied by configuration, never by a downstream skill (ADR-0009 Decision 2).
+    trust_level: str
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -43,6 +45,7 @@ class ChangeSet:
             "base_sha": self.base_sha,
             "head_sha": self.head_sha,
             "source_refs": list(self.source_refs),
+            "trust_level": self.trust_level,
             "changed_files": [
                 {
                     "path": file.path,
@@ -96,6 +99,7 @@ class SourceConnector:
             changed_files=_changed_files(diff_text, base_sha, head_sha),
             diff_text=diff_text,
             source_refs=self._source_refs(base_sha, head_sha, change_ref),
+            trust_level=self.repository.trust_level,
         )
 
     def run_git(self, *args: str) -> str:
