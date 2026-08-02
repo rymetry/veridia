@@ -121,4 +121,4 @@ mapping時の制約(sqk-core D-012の実行境界):
 | OQ-KB-2 | 連携方式(submodule / package / vendored copy / local path) | **決定済み(2026-08-01)**: git submoduleでSHA固定。[ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md) |
 | OQ-KB-3 | SHA更新時の互換性チェック | 方針決定済み(2026-08-01): §4の手順。自動化の要否はPhase 1のruntimeレーン着手時に判断する |
 | OQ-KB-4 | 初回consumer対象の `quality_profile` | Phase 2以降の計画時 |
-| OQ-KB-5 | generic platform contract と profile-specific adapter の境界 | runtimeレーンの具体タスク化前(Phase 1のskill実装タスク着手時) |
+| OQ-KB-5 | generic platform contract と profile-specific adapter の境界 | **決定済み(2026-08-02)**: 境界は「契約 vs 契約の扱い」に引く。テストプロセス成果物(工程0〜8)の契約はsqk-coreを正本として直接消費し、adapter層は作らない。veridiaが定義するのは実行系固有のもの(ExecutionEvidence / GateDecision / GatePolicy / RunRecord)に限る。[ADR-0007](../decisions/adr-0007-sqk-core-contract-consumption.md) |

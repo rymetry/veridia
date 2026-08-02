@@ -20,7 +20,11 @@ jobs:
   checks:
     runs-on: ubuntu-latest
     steps:
+      # submodules: sqk-core契約の境界検証テストがvendor/sqk-core/schemasに依存する(ADR-0007)。
+      # 未取得だとそのテスト群がskipされ「無言で0件検証」になるため、CIでは必ず取得する。
       - uses: actions/checkout@v4
+        with:
+          submodules: true
 
       # .python-version(3.12)をuvが読み、Python本体も自動取得する
       - uses: astral-sh/setup-uv@v6
@@ -36,7 +40,11 @@ jobs:
       - name: format検証
         run: uv run ruff format --check .
 
+      # VERIDIA_REQUIRE_SQK=1: sqk-core契約テストのskipを失敗に変える。
+      # submodule取得漏れ(checkout設定の退行等)が、testはgreenのまま検証0件になるのを防ぐ。
       - name: test
+        env:
+          VERIDIA_REQUIRE_SQK: "1"
         run: uv run pytest --cov --cov-fail-under=80
 
       - name: タスク_index差分検証(statusの正本=frontmatterとの一致)

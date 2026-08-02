@@ -19,7 +19,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `models/` | `schemas/` からの生成Pydanticモデル。手編集禁止(`scripts/gen_models.py` で再生成) | 稼働中 |
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
-| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI | 稼働中 |
+| `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**: veridia契約(`schemas/`、`artifact_type` でルーティング)と sqk-core契約(`vendor/sqk-core/schemas/`、`schema_ref` でルーティング。[ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
 | `evidence_store/` | ExecutionEvidenceのmetadata/blob保存adapter | 稼働中 |
 | `trace_store/` | redacted trace recordの保存adapter | 稼働中 |
 | `trace_ids/` | run_id / trace_id / span_id生成 | 稼働中 |
@@ -30,7 +30,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `change_impact_generator/` | ChangeImpactSpec候補生成CLI | 稼働中 |
 | `scripts/` | 生成・整合性チェック用repo-local tooling | 稼働中 |
 | `tests/` | pytestによるcontract / regression test | 稼働中 |
-| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0006](docs/decisions/adr-0006-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md)) | 稼働中 |
+| `vendor/sqk-core/` | 品質知識・skill blueprintの正典 [sqk-core](https://github.com/rymetry/sqk-core) をSHA固定で取り込むsubmodule。**手編集禁止**(改善はsqk-coreへIssue/PRで還流。[ADR-0006](docs/decisions/adr-0006-sqk-core-integration-method.md) / [統合方針](docs/plan/sqk-core-integration.md))。**テストプロセス成果物の契約はここが正本**であり、veridiaは再定義しない([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md))。テストがこのsubmoduleに依存するため、CIでも取得する | 稼働中 |
 | `.claude/` | このリポジトリでの開発用エージェント設定。`.claude/skills` は `vendor/sqk-core/skills` へのsymlink | - |
 
 **注意(名前空間):** `qa-skills/` はQAプラットフォームが実行時に使うskill package(§7.1)。`.claude/skills/`(このリポジトリを開発するエージェント自身の拡張)とは別物(ADR-0001参照。§7.1の `skills/` から改名した逸脱の記録あり)。sqk-coreの16スキルは現在この `.claude/skills/` レーンでのみ消費している。`qa-skills/` へのmappingはPhase 1のskill実装時に判断する([統合方針 §3](docs/plan/sqk-core-integration.md))。

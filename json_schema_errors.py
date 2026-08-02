@@ -36,6 +36,17 @@ def error_key(error: ValidationError) -> tuple[str, str, str]:
     return (field_path_for_error(error), path_to_jsonpath(error.schema_path), error.message)
 
 
+def relevant_errors(errors: Any) -> tuple[ValidationError, ...]:
+    """Sort errors and drop generic `unevaluatedProperties` noise when specifics exist."""
+    all_errors = tuple(errors)
+    specific_errors = tuple(
+        error for error in all_errors if error.validator != "unevaluatedProperties"
+    )
+    if specific_errors:
+        return tuple(sorted(specific_errors, key=error_key))
+    return tuple(sorted(all_errors, key=error_key))
+
+
 def field_path_for_error(error: ValidationError) -> str:
     """Return the instance JSONPath for an error, including missing required fields."""
     if error.validator == "required":
