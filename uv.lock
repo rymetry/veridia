@@ -494,6 +494,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "jsonschema" },
     { name = "pydantic" },
+    { name = "pyyaml" },
     { name = "referencing" },
 ]
 
@@ -501,7 +502,6 @@ dependencies = [
 dev = [
     { name = "pytest" },
     { name = "pytest-cov" },
-    { name = "pyyaml" },
     { name = "ruff" },
 ]
 
@@ -509,6 +509,7 @@ dev = [
 requires-dist = [
     { name = "jsonschema", specifier = ">=4.21,<5" },
     { name = "pydantic", specifier = ">=2.7,<3" },
+    { name = "pyyaml", specifier = ">=6,<7" },
     { name = "referencing", specifier = ">=0.31,<1" },
 ]
 
@@ -516,6 +517,5 @@ requires-dist = [
 dev = [
     { name = "pytest", specifier = ">=9.0.3,<10" },
     { name = "pytest-cov", specifier = ">=7.1.0" },
-    { name = "pyyaml", specifier = ">=6,<7" },
     { name = "ruff", specifier = ">=0.5,<1" },
 ]

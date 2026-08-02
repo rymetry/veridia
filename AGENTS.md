@@ -19,6 +19,7 @@ QAエージェントプラットフォーム(North Star: `docs/qa-agent-strategy
 | `qa-skills/` | QAプラットフォームのskill package(North Star §7.1) | Phase 0で着手 |
 | `policies/` | GatePolicy等のversioned config(North Star §17) | Phase 0で着手 |
 | `artifact_validator/` | Artifact JSON Schemaのruntime検証lib/CLI。**2つのschema familyを扱う**: veridia契約(`schemas/`、`artifact_type` でルーティング)と sqk-core契約(`vendor/sqk-core/schemas/`、`schema_ref` でルーティング。[ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
+| `skill_runner/` | sqk-core skillの隔離実行境界(LLMClient / SkillRunner)。[ADR-0005](docs/decisions/adr-0005-llm-skill-execution.md) / [ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md) | 稼働中 |
 | `run_store/` | sqk-core skill実行の監査ラッパー(RunRecord)生成と保存([ADR-0007](docs/decisions/adr-0007-sqk-core-contract-consumption.md)) | 稼働中 |
 | `evidence_store/` | ExecutionEvidenceのmetadata/blob保存adapter | 稼働中 |
 | `trace_store/` | redacted trace recordの保存adapter | 稼働中 |

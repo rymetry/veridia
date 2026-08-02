@@ -4,6 +4,18 @@
 
 ---
 
+## 2026-08-02 [process-learning] CLIが拘束できない制約はpromptで伝えないと、呼び出しコストだけ払って破棄される(T-027実LLM実測)
+
+- 事実(何を観測したか): T-027でsqk-core skillを実LLM(`claude -p`)で初めて実行した。ADR-0005 Decision 6.1に従いCLIへ渡す出力schemaはportable profile(`type`/`properties`/`required`/`enum`/`items`/`additionalProperties`)に限り、`pattern` は `artifact_validator` 側で強制する設計にしていた。結果、`test-architecture-design` はcold start時にDTCをグループ分けした `DTC-A01` / `DTC-B02` 形式のIDを合成し、sqk-coreの `^DTC-[0-9]+$` に18件弾かれてrecordは保存されなかった。**契約検証は正しく働いたが、モデルは自分が何で検証されるかを知らないまま出力していた。** 制約をschemaから導出してprompt指示部へ載せる `contract_note` を追加したところ、次の実行はTAE 8件を正しい形式で生成し検証を通過した。
+- 学び(なぜ・何を変えるべきか): 「CLI側で拘束できない制約はvalidator側で強制する」は正しいが、それだけでは**検証は通るが実行が通らない**。強制する場所と、モデルに伝える場所は別に必要である。かつ伝える内容はschemaから導出する — 手書きでpromptに書くと、schemaが変わったときに黙って乖離する(North Star変更ルール2の複製回避と同じ理由)。portable profileを採る設計では、profile外の制約すべてについて「validatorで強制する」と「promptで伝える」の両方を配線する。
+- アクション(変更したもの・リンク): `skill_runner/contract_note.py` を追加し、宣言された出力schemaから `pattern` を走査して指示部へ載せる。regression guard: `tests/test_skill_runner.py::TestContractNote`(schemaからの導出・制約が無い場合は空・指示部にのみ載りデータ部には混ざらない)。記録: [T-027](../tasks/phase-1/T-027-skill-runner-minimal.md)。
+
+## 2026-08-02 [process-learning] CLIの隔離フラグはトークン消費を1/15にする(ADR-0005 Decision 5の効果実測)
+
+- 事実(何を観測したか): ADR-0005起票時の実測では、`claude -p` に「OKと返せ」だけを渡してもcache_creation 35,447 tokensが積まれていた(CLI既定のsystem prompt・tool定義・環境情報・プロジェクト文脈が乗るため)。T-027でDecision 5の隔離フラグ(`--safe-mode` / `--setting-sources ""` / `--disable-slash-commands` / `--strict-mcp-config` / `--tools ""` / `--no-session-persistence`)を全て明示し、cwdをリポジトリ外の一時ディレクトリにした状態で同等の試行を行ったところ **2,361 tokens** になった。約1/15。
+- 学び(なぜ・何を変えるべきか): 隔離要件は再現性・§15.4・§16.4のために課したものだが、**コスト面でも支配的な効果を持つ**。「hermetic化は望ましいではなく必須」というADR-0005の結論は、安全性だけでなく経済性からも裏付けられた。一方でこれは、隔離フラグが1つでも外れると静かにコストと汚染が戻ることも意味する。フラグの存在をargvレベルのテストで固定する価値がある(防御コードは正常系テストでは発火しない — 2026-07-03のエントリ)。
+- アクション(変更したもの・リンク): `tests/test_skill_runner.py::TestIsolationArgv` で6フラグと `--bare` 不使用・model明示をargv単位で固定した。実測値は [skill_runner/README.md](../../skill_runner/README.md) に記載。
+
 ## 2026-08-02 [northstar-proposal] ArtifactBaseの `confidence` 必須は最初の非artifact producerで破綻した(RunRecordは継承を見送り)
 
 - 事実(何を観測したか): ADR-0007の監査ラッパー `RunRecord` を定義する際、`artifact-base.schema.json` を `allOf` で継承すると必須10fieldがすべて掛かる。うち `confidence`(number / 0.0〜1.0 / required)はskill実行1回の記録に対応する値を持たない。埋めるとすれば 1.0 等の任意の定数になり、これは値の捏造にあたる。`created_by.skill` も sqk-core envelope の `source_skill` と二重管理になる。残る8fieldは意味を持った(`source_refs` は「何に対して実行したか」、`status` は人間レビューの到達点として実用的)。
