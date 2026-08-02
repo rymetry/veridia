@@ -56,7 +56,7 @@ sqk-coreをsubmodule `vendor/sqk-core` としてSHA固定でcheckoutし、`.clau
 .claude/skills -> ../vendor/sqk-core/skills
 ```
 
-固定SHA: `54e78cc7f5b5bb1fcd63a72495a530929538f3f8`(2026-08-01時点のsqk-core origin/main)
+固定SHA: `01f104d788d2423a85e514483edbf2983dc7b553`(2026-08-02更新。sqk-core#48 の修正取り込み。前版: `54e78cc7f5b5bb1fcd63a72495a530929538f3f8`)
 
 このレーンはveridiaのruntime挙動に影響しない。開発時のエージェント支援のみに使う。
 
