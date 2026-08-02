@@ -90,55 +90,18 @@ class TestSqkFixtureContract:
 class TestHandoffEnvelope:
     """The envelope is the transport; carried artifacts are validated per schema_ref."""
 
-    def test_envelope_and_payloads_pass(self) -> None:
-        """Happy path composed from sqk-core's own per-item fixture.
+    def test_upstream_valid_envelope_fixture_passes(self) -> None:
+        """sqk-coreのvalid fixtureは、内包payloadまで含めて契約を満たす。
 
-        Composed rather than read from `handoff-envelope/valid/`: that fixture carries an
-        under-populated payload (see `test_envelope_payload_gap_in_sqk_core_fixture`).
-        """
-        risk_item = _load(next((FIXTURES_DIR / "risk-item" / "valid").glob("*.json")))
-        envelope = {
-            "source_skill": "risk-analysis",
-            "phase": "risk-analysis",
-            "artifacts": [
-                {
-                    "type": "RiskItemList",
-                    "schema_ref": "schemas/risk-item.schema.json",
-                    "items": [risk_item],
-                }
-            ],
-            "trace_ids": ["REQ-012", "RISK-007"],
-            "assumptions": [],
-            "open_questions": [],
-            "gate_status": "passed-with-risks",
-        }
-        validate_handoff_envelope(envelope)
-
-    def test_envelope_payload_gap_in_sqk_core_fixture(self) -> None:
-        """sqk-core's `handoff-envelope` valid fixture carries an invalid RiskItem payload.
-
-        sqk-core's own harness (`scripts/validate-schemas.sh`) checks each fixture against
-        its own schema only, and `handoff-envelope.artifacts[].items` is an unconstrained
-        array, so the embedded payload is never checked against the `schema_ref` it declares.
-        The embedded item has `id` + `statement` but `risk-item.schema.json` also requires
-        `category` / `likelihood` / `impact` / `treatment`.
-
-        Reported upstream as rymetry/sqk-core#48. This test pins the current behaviour;
-        remove it once that issue is fixed and the submodule SHA is bumped.
+        2026-08-02以前はこのfixtureの内包RiskItemが `risk-item.schema.json` の必須4fieldを
+        欠いていた(veridia側の境界検証が検出 → sqk-core#48)。上流が fixture 修正と
+        `scripts/check.py` の envelope 検証(CHECK6)追加で解決したため、合成せず原本を使う。
         """
         envelope = _load(FIXTURES_DIR / "handoff-envelope" / "valid" / "risk-analysis-handoff.json")
-        with pytest.raises(ArtifactValidationError) as excinfo:
-            validate_handoff_envelope(envelope)
-        missing = {issue.field_path for issue in excinfo.value.errors}
-        assert missing == {
-            "$.artifacts[0].items[0].category",
-            "$.artifacts[0].items[0].likelihood",
-            "$.artifacts[0].items[0].impact",
-            "$.artifacts[0].items[0].treatment",
-        }
+        validate_handoff_envelope(envelope)
 
-    def test_envelope_shape_alone_accepts_that_fixture(self) -> None:
-        """The same fixture is valid as an envelope: the gap is only visible at payload level."""
+    def test_envelope_shape_alone_is_a_weaker_check(self) -> None:
+        """envelope単体の検証はpayload契約を見ない。二層検証が要る理由(sqk-core#48の教訓)。"""
         envelope = _load(FIXTURES_DIR / "handoff-envelope" / "valid" / "risk-analysis-handoff.json")
         validate_sqk_artifact(envelope, schema_ref="schemas/handoff-envelope.schema.json")
 

@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-02 [process-learning] 上流へのフィードバックループが1周した — pinテストは「削除条件を書いておくと自分で落ちて知らせる」
+
+- 事実(何を観測したか): veridiaの境界検証が検出したsqk-coreの不整合(envelope内包payloadが `schema_ref` に対して未検証)を [Issue #48](https://github.com/rymetry/sqk-core/issues/48) として起票したところ、上流は PR #49 / #50 で解決した。**fixtureの修正だけでなく、提案どおり `scripts/check.py` に envelope 検証(CHECK6)が追加**され、再発が構造的に防がれた。veridia側でSHAを `54e78cc` → `01f104d` へ付け替えたところ、壊れた挙動をpinしていた `test_envelope_payload_gap_in_sqk_core_fixture` が `DID NOT RAISE` で落ちた。skill frontmatterの `version` は16本すべて据え置き、schemaの契約変更も無し(差分はfixtureとREADMEのみ)だったため、取り込みは非破壊だった。
+- 学び(なぜ・何を変えるべきか): 上流の未修正事項をpinするテストには、**docstringに削除条件を書いておくと、条件が満たされた瞬間にテスト自身が失敗して知らせてくれる**。「上流が直ったか」を人間が定期的に確認する必要がない。これはTODOコメントとの決定的な違いで、TODOは腐るがpinテストは腐ると落ちる。あわせて、分離リポジトリ構成の価値がここで実証された — 修正が上流の検証ハーネスに入ったため、veridia以外の3プラットフォーム(claude-code / gpts / codex)にも同じ防御が届いた。veridia側で直していたら1リポジトリ分の修正で終わっていた。
+- アクション(変更したもの・リンク): submodule SHAを `01f104d788d2423a85e514483edbf2983dc7b553` へ更新([統合方針 §4](../plan/sqk-core-integration.md) の手順1〜4を実行。上流 `scripts/check.py` はCHECK1〜6すべてissues=0)。pinテストを削除し、合成で迂回していたhappy pathを上流のvalid fixture原本を使う形へ戻した(`test_upstream_valid_envelope_fixture_passes`)。
+
 ## 2026-08-02 [process-learning] CLIが拘束できない制約はpromptで伝えないと、呼び出しコストだけ払って破棄される(T-027実LLM実測)
 
 - 事実(何を観測したか): T-027でsqk-core skillを実LLM(`claude -p`)で初めて実行した。ADR-0005 Decision 6.1に従いCLIへ渡す出力schemaはportable profile(`type`/`properties`/`required`/`enum`/`items`/`additionalProperties`)に限り、`pattern` は `artifact_validator` 側で強制する設計にしていた。結果、`test-architecture-design` はcold start時にDTCをグループ分けした `DTC-A01` / `DTC-B02` 形式のIDを合成し、sqk-coreの `^DTC-[0-9]+$` に18件弾かれてrecordは保存されなかった。**契約検証は正しく働いたが、モデルは自分が何で検証されるかを知らないまま出力していた。** 制約をschemaから導出してprompt指示部へ載せる `contract_note` を追加したところ、次の実行はTAE 8件を正しい形式で生成し検証を通過した。
