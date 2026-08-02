@@ -35,7 +35,7 @@ from gate_evaluator.results import (
     Verdict,
     aggregate,
 )
-from gate_evaluator.rules import SOURCE_GROUNDING_GATE
+from gate_evaluator.rules import SOURCE_GROUNDING_GATE, RuleOutcome, evaluate_source_grounding
 from gate_evaluator.store import GateDecisionStore
 
 __all__ = [
@@ -62,7 +62,9 @@ __all__ = [
     "GatePolicy",
     "GatePolicyError",
     "GateResult",
+    "RuleOutcome",
     "Verdict",
     "aggregate",
     "enforce",
+    "evaluate_source_grounding",
 ]

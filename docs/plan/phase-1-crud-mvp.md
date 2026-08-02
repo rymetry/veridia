@@ -75,7 +75,7 @@ W1〜W19(§4.3)のうち、Phase 1で最小実装する範囲:
 ## 7. リスクと未確定事項
 
 - OQ-2(対象サービス)決定済み(2026-08-02、[T-024](../tasks/phase-1/T-024-target-service-decision.md))。veridia自身・2機能。§1参照。**残リスク: 業務アプリ特有の前提がW1〜W19で踏まれない**(§1の移行条件で回収する)
-- OQ-4: 対象プロダクトrepoへのSource Connector最小構成(GitHub PR diff取得のみで開始するか)。OQ-2がveridia自身になったため、Phase 1ではローカルpath参照で足りる可能性が高い。横展開時に再評価する
+- OQ-4(Source Connector最小構成)決定済み(2026-08-02、[T-026](../tasks/phase-1/T-026-source-connector-minimal.md))。**対応sourceはローカルgit repositoryのcommit rangeのみ**とし、GitHub API経由のPR取得は実装しない。理由: (1) OQ-2でveridia自身が対象になり全変更がローカルgitで到達できる、(2) 認証を一切扱わない設計にできる(veridiaが資格情報に触れないのはADR-0005と同じ原則)、(3) PR URLのような恒久refは呼び出し側から `change_ref` として供給でき、provenanceを失わない。**未カバーを明示する: 認証・rate limit・private repoアクセス・GitHub API形状はPhase 1で一度も踏まない。** §1の移行条件(外部の実在サービスへの横展開)時に再評価する
 - OQ-5: LLM skill実行方式(provider / model / 呼び出し境界 / コスト管理)未決。Phase 1最初期にADRで決定する
 - LLM出力の品質が不明のため、Week 2の要求・リスク抽出は「候補生成+人間レビュー必須」から始める(§17.0のshadow思想をskill出力にも適用)
 - 4週間はcalendar timeの目安ではなくepic規模の目安として扱う(個人開発のため)
