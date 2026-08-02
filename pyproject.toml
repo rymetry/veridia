@@ -38,6 +38,7 @@ src = [
     "scripts",
     "run_store",
     "skill_runner",
+    "source_connector",
     "test_asset_index_generator",
     "tests",
     "tool_gateway",

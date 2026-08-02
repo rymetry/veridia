@@ -2,13 +2,13 @@
 
 frontmatterから再生成する集約ビュー。**手で編集しない**(statusの正本は各タスクファイル。`docs/tasks/README.md` 参照)。
 
-生成日: 2026-08-02 / 全34タスク(not_started: 30 / done: 4)
+生成日: 2026-08-02 / 全34タスク(not_started: 29 / done: 5)
 
 | task_id | epic | status | blocked_by | タイトル |
 |---|---|---|---|---|
 | [T-024](T-024-target-service-decision.md) | phase1-setup | done | - | OQ-2 対象サービス・機能の決定 |
 | [T-025](T-025-adr-llm-skill-execution.md) | phase1-setup | done | - | ADR-0005 LLM skill実行方式の決定(OQ-5) |
-| [T-026](T-026-source-connector-minimal.md) | phase1-setup | not_started | T-024 | Source Connector最小版(OQ-4決定 + 対象repo PR diff取得) |
+| [T-026](T-026-source-connector-minimal.md) | phase1-setup | done | T-024 | Source Connector最小版(OQ-4決定 + 対象repo PR diff取得) |
 | [T-027](T-027-skill-runner-minimal.md) | phase1-setup | done | T-025 | skill実行基盤最小版(skill runner) |
 | [T-028](T-028-source-map-schema.md) | grounding-oracle | not_started | - | SourceMap schema定義 |
 | [T-029](T-029-source-grounding-skill.md) | grounding-oracle | not_started | T-026, T-027, T-028 | `source-grounding` skill(W1: PR diff → SourceMap) |

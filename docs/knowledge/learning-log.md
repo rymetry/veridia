@@ -4,6 +4,12 @@
 
 ---
 
+## 2026-08-02 [process-learning] 共有parserの「入力エラー」は、別の呼び出し側では正当な結果でありうる(T-026)
+
+- 事実(何を観測したか): T-026のSource ConnectorでT-010の `parse_unified_diff` を再利用したところ、**変更が無いcommit range**(`HEAD..HEAD`)で `ValueError: diff did not contain any 'diff --git' file entries` が出た。同関数はCLI(diffファイルを渡す)向けに書かれており、そこでは空入力は確かに利用者のミスである。しかしconnectorから見れば「baseとheadの間に変更が無い」は正当な結果であり、例外にすべきではない。
+- 学び(なぜ・何を変えるべきか): 再利用時にとりうる選択は3つある。(a) 共有parserの契約を緩めて空を許す、(b) 呼び出し側で空を短絡する、(c) parserを複製する。**(a)を選ぶと既存の呼び出し側(change_impact_generator CLI)が入力ミスを検出できなくなる** — 共有コードの契約を新しい呼び出し側の都合で緩めると、既存の呼び出し側の防御が黙って消える。(c)は複製。よって(b)。ただし短絡は「読めない出力を変更なしへ退化させる」危険と紙一重なので、**短絡するのは真に空の出力だけ**にし、中身があって読めない場合は文脈付き例外(`DiffParseError`)に分ける。この区別自体をテストで固定しないと、後から短絡範囲が広がっても誰も気づかない。
+- アクション(変更したもの・リンク): `source_connector/connector.py::_changed_files` で空出力のみ短絡し、parse失敗は `DiffParseError` へ包む。regression guard: `test_empty_range_yields_no_files_but_still_identifies_the_range` と `test_unparsable_diff_output_raises_instead_of_reporting_no_changes` の2本を対で置いた(片方だけだと短絡範囲の拡大を検出できない)。記録: [T-026](../tasks/phase-1/T-026-source-connector-minimal.md)。
+
 ## 2026-08-02 [process-learning] 契約が既に強制している条件をgateにすると、そのgateは一生発火しない(T-057)
 
 - 事実(何を観測したか): §17.1のsource grounding gateを最初のgateに選んだ理由は「現状の材料で唯一評価できるから」だった。実装直前に気づいたのは、判定材料である `RunRecord.source_refs` に **schema側が既に `minItems: 1` を課している**ことである。さらに `SkillRunner.run()` も空の `source_refs` を入口で拒否する。つまり正常経路を通ったrecordに対しては、このgateは定義上100%passする。テストは全部緑になり、カバレッジも100%になり、gateは何も守っていない。

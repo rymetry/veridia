@@ -13,6 +13,7 @@ import pytest
         "sandbox_env.__main__",
         "artifact_validator.__main__",
         "test_asset_index_generator.__main__",
+        "source_connector.__main__",
     ],
 )
 def test_main_modules_do_not_execute_on_import(module_name: str) -> None:

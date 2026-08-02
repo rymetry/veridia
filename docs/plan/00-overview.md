@@ -74,7 +74,7 @@ veridiaが汎用QAプラットフォームである根拠は§3.1(対象範囲)�
 | OQ-1 | 実装言語・スタック(Python/TypeScript、schema lib) | 決定済み(2026-07-02) | [ADR-0002](../decisions/adr-0002-language-schema-lib.md) |
 | OQ-2 | Phase 1の対象サービス・機能(1サービス・1〜2機能) | 決定済み(2026-08-02) | [phase-1 §1](phase-1-crud-mvp.md#1-目的と対象) / [T-024](../tasks/phase-1/T-024-target-service-decision.md) |
 | OQ-3 | Evidence Storeの具体構成(DB / object storage) | 決定済み(2026-07-03) | [ADR-0003](../decisions/adr-0003-evidence-trace-store-stack.md) |
-| OQ-4 | 対象プロダクトのrepo接続方法(Source Connector最小構成) | Phase 1着手前 | phase-1 §7 |
+| OQ-4 | 対象プロダクトのrepo接続方法(Source Connector最小構成) | 決定済み(2026-08-02) | [phase-1 §7](phase-1-crud-mvp.md) / [T-026](../tasks/phase-1/T-026-source-connector-minimal.md) |
 | OQ-5 | LLM skill実行方式(provider / model / 呼び出し境界 / コスト管理) | 決定済み(2026-08-02) | [ADR-0005](../decisions/adr-0005-llm-skill-execution.md) |
 | OQ-KB-* | sqk-coreの取り込み(連携方式・互換性チェック・runtime mapping境界) | KB-1〜3は決定済み(2026-08-01)。KB-4/5は未決 | [sqk-core-integration.md §7](sqk-core-integration.md) / [ADR-0006](../decisions/adr-0006-sqk-core-integration-method.md) |
 
