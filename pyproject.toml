@@ -17,7 +17,7 @@ dependencies = [
 # 開発用ツール。uvのdependency-group機能で管理する(PEP 735)。
 # schema→Pydantic生成(datamodel-code-generator)はADR-0008で廃止した。
 dev = [
-    "pytest>=8.2,<9",
+    "pytest>=9.0.3,<10",
     "ruff>=0.5,<1",
     # pyyamlはskill manifest(qa-skills/*/manifest.yaml §7.1)のテスト内パースで直接import
     # する(推移的依存に頼らない明示宣言。T-021)。実行時利用が必要になったら本体依存へ昇格する。
