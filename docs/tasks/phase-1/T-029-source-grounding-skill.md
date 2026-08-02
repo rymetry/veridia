@@ -21,7 +21,7 @@ blocked_by: [T-026, T-027, T-028]
 ## DoD
 
 - [x] `qa-skills/source-grounding/` が新規skill作成手順(1〜8)に従って作成され、`registry.yaml` に登録されている(既存のmanifest / registry pytestがpass)
-- [x] skill runner(T-027)経由で、T-026のconnectorが取得した変更を入力に、SourceMap候補(`status: draft`)を生成できる(`TestW1EndToEnd`。実LLMではなくFakeLLMClientでの実証。下の「実行1回の記録について」参照)
+- [x] skill runner(T-027)経由で、T-026のconnectorが取得した変更を入力に、SourceMap候補(`status: draft`)を生成できる(**実LLMで1回実行済み**。下の「実行1回の記録」参照。構造検証は `TestW1EndToEnd` がFakeLLMClientで行う)
 - [x] 生成されたSourceMapがT-028 schemaとartifact_validatorをpassする(`source_refs` 必須を含む。契約違反のSourceMapがrecordにならないことも実証)
 - [x] `evals/` にpositive / negative caseがあり、fake LLMでの構造検証がpytestでpassする
 - [x] 対象プロダクト固有の知識がSKILL.md・promptにハードコードされていない(`TestPackageCarriesNoTargetKnowledge` が禁止語で実証)
@@ -34,24 +34,39 @@ blocked_by: [T-026, T-027, T-028]
 
 **3. manifestの出力宣言 → schema_ref の解決。** manifestは成果物をtitle(`SourceMap`)で宣言する。文字列変換ではなく**schemaの `title` との一致**で解決するため、実在しない契約を宣言したmanifestはload時に落ちる。
 
-## 実行1回の記録について
+## 実行1回の記録
 
-**実LLMでの実行記録は本タスクでは取っていない。** 検証はすべて `FakeLLMClient` による構造検証である。**未達として明示する。**
-
-駆動側は用意した。`qa-skills/source-grounding/scripts/run_skill.py` が ChangeSet JSON を受けて実行し、RunRecord を保存するところまで通っている。
+**実LLMで1回実行し、記録を取得した(2026-08-02)。**
 
 ```bash
-uv run python -m source_connector --repo . --base HEAD~1 --head HEAD --output change.json
-uv run python qa-skills/source-grounding/scripts/run_skill.py change.json
+uv run python -m source_connector --repo . --label veridia --base 78ef74d~1 --head 78ef74d \
+  --change-ref https://github.com/rymetry/veridia/pull/14 --output change.json
+uv run python qa-skills/source-grounding/scripts/run_skill.py change.json --agent claude-code
 ```
 
-実行するとコストが発生し、対象PRの選定も要るため、実行の判断はオーナーに委ねる。呼ぶ手前の門番(ChangeSetが読めない / `source_refs` が空)はテストで固定してある — 空のsourceでLLMを呼ぶとコストだけ払って必ずgateに落ちるため。
+| 項目 | 値 |
+|---|---|
+| 入力 | veridia PR #14(17ファイル / diff 約11k tokens) |
+| run_id | `run-20260802T145320462851Z-1a58c48c55d8` |
+| 生成物 | SourceMap 1件、`extracted_items` 55件 |
+| gate_status | `passed` / `status: draft` / `requires_human_review: true` |
+| `sqk_core` pin | 無し(veridia自前skillのため正。ADR-0010 Decision 3) |
+| `trust_level` | `trusted`(取り込み層の値。モデル出力ではない) |
+| コスト | $0.936(cache_creation 29,437 / output 24,784 tokens) |
+| 所要 | 4分26秒 |
+
+**span 55件すべてを実ファイルへ突き合わせて検証した。** 形式違反0 / 変更外path 0 / 行範囲外0。`artifact_id` を採番した項目も0件で、設計した失敗モード(span捏造・ID採番)はいずれも発生していない。
+
+注目すべき自己申告が2点あった。(1) 「作業ディレクトリに対象repoが無いため head_sha のファイル実体と突き合わせていない」— ADR-0005の隔離により**skillは自分のspanを検証できない**。実際の突き合わせはveridia側でしか行えず、validatorを置く自然な場所がここにある。(2) 「`contract_note.py` の第2 hunkのみ再構成した行数がhunkヘッダ申告と1行合わなかったため、spanを広めに取って吸収した」— 誤差を隠さず表明している。
+
+**1回目は失敗している。** 同じ入力で契約検証に全面的に弾かれた(所要4分49秒、記録は0件)。原因と対処は learning-log の2エントリに記録した。呼ぶ手前の門番(ChangeSetが読めない / `source_refs` が空)はテストで固定してある。
 
 ## 検証方法・根拠
 
 ```bash
 uv run pytest tests/test_source_grounding_skill.py -q     # 30 passed
-VERIDIA_REQUIRE_SQK=1 uv run pytest -q                    # 1004 passed
+uv run pytest tests/test_portable_schema.py -q            # 14 passed
+VERIDIA_REQUIRE_SQK=1 uv run pytest -q                    # 1020 passed
 uv run ruff check . && uv run ruff format --check .
 ```
 
@@ -62,5 +77,5 @@ uv run ruff check . && uv run ruff format --check .
 ## 記録(完了時に記入)
 
 - decisions: [ADR-0010](../../decisions/adr-0010-handoff-envelope-for-both-contract-families.md)(本タスクの前段として起票・実装済み)
-- learning-log: なし(ADR-0010実装時のmutation checkの学びは同ADRのPRで記録済み)
+- learning-log: [profile内の制約が伝わっているかを誰も確認していなかった](../../knowledge/learning-log.md) / [契約検証で落ちた実行は記録が残らない](../../knowledge/learning-log.md)(いずれも実LLM実測)
 - domain: なし(skillは対象非依存。対象固有情報は入力として渡す)
