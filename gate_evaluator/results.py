@@ -5,8 +5,8 @@ The aggregation rule is deliberately asymmetric:
 - only a gate that ran at `block` stage and **failed** can block
 - an `inconclusive` gate never blocks, but it can never be reported as a pass either
 
-Blocking on inconclusive would be the safer-looking choice and the wrong one: 16 of
-the 17 gates have no evaluator yet, so every run would block on day one. §17.0 says
+Blocking on inconclusive would be the safer-looking choice and the wrong one: 15 of
+the 16 gates have no evaluator yet, so every run would block on day one. §17.0 says
 that outcome (blanket blocking, then routine override) is how a gate becomes
 ceremonial. Warning keeps the gap visible without spending the trust.
 """

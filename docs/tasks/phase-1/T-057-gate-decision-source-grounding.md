@@ -11,7 +11,7 @@ blocked_by:
 
 ## 目的
 
-`policies/gate-policy.yaml` は17 gateを定義しているが、Phase 0完了時点で評価するコードが1行も無い。
+`policies/gate-policy.yaml` は16 gateを定義しているが、Phase 0完了時点で評価するコードが1行も無い。
 T-054本体は `blocked_by: [T-032, T-036, T-043, T-049, T-053]` で当面着手できないため、
 そのうち**依存の無い部分だけ**を先に通し、gateが実際にblockする経路を1本作る。
 

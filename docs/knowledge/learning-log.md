@@ -43,7 +43,7 @@
 
 ## 2026-08-02 [process-learning] 未実装gateを「安全側」でblockにすると、初日に全runが止まってgateが形骸化する(T-057)
 
-- 事実(何を観測したか): 17 gate中16に評価器が無い状態でgate評価器を作った。未評価gateの扱いとして最初に検討したのは「block stageのgateが判定できないならblockする」だった。これはfail-safeに見えるが、実際には`oracle` / `evidence` / `security` の3つがblock stageで未実装であるため、**すべてのrunが無条件でblockされる**。§17.0が「false blockは1回で10回分の信頼を毀損する」「override常態化でgateは形骸化する」と書いている状態そのものである。
+- 事実(何を観測したか): 16 gate中15に評価器が無い状態でgate評価器を作った。未評価gateの扱いとして最初に検討したのは「block stageのgateが判定できないならblockする」だった。これはfail-safeに見えるが、実際には`oracle` / `evidence` / `security` の3つがblock stageで未実装であるため、**すべてのrunが無条件でblockされる**。§17.0が「false blockは1回で10回分の信頼を毀損する」「override常態化でgateは形骸化する」と書いている状態そのものである。
 - 学び(なぜ・何を変えるべきか): 「判定できない」に対する安全な既定値は文脈で反転する。**runtimeの権限判定では deny が安全側だが、開発プロセスのgateでは block は安全側ではない** — 止まったチームはgateを迂回する手段を制度化し、gateは以後どの違反も止められなくなる。3値(`pass` / `fail` / `inconclusive`)を用意し、inconclusiveは「passにはしないがblockもしない = warnへ落として可視化する」に割り当てるのが、精度が立証されるまでの正しい既定値である。ただしこれは「黙ってpassにする」と紙一重なので、(a) 全gateの判定をrecordへ列挙する、(b) 理由を必須にする、(c) 現在のpolicyではpassが出得ないことをテストで固定する、の3点で可視性を担保する。
 - アクション(変更したもの・リンク): `gate_evaluator/results.py::aggregate` がstage別に集約し、block stageのinconclusiveはwarnへ落とす。`schemas/gate-decision.schema.json` の `gateResult.reason` は全outcomeで必須。regression guard: `tests/test_gate_evaluator.py::TestStageDrivesTheDecision::test_todays_real_policy_cannot_yield_pass`(gate実装が進むとこのテストが落ちて状況の変化を知らせる)。記録: [T-057](../tasks/phase-1/T-057-gate-decision-source-grounding.md)。
 ## 2026-08-02 [process-learning] 上流へのフィードバックループが1周した — pinテストは「削除条件を書いておくと自分で落ちて知らせる」

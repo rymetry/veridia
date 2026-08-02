@@ -5,7 +5,7 @@
 
 Two properties are load-bearing and are pinned by tests:
 
-- a gate with no evaluator is `inconclusive`, never `pass`. 16 of the 17 gates have no
+- a gate with no evaluator is `inconclusive`, never `pass`. 15 of the 16 gates have no
   evaluator yet, so silently passing them would make the whole decision meaningless
 - the subject's self-declared `gate_status` can only make the decision stricter. A
   trust label the subject writes about itself must not be able to open the gate

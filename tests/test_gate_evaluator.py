@@ -8,7 +8,7 @@
   contractを満たさないpayload(手書きrecord、将来の別producer、破損file)を渡された
   ときであり、そこを狙って落とす。
 - **inconclusiveがpassへ退化しないこと。** 評価器の無いgateを黙ってpassにすると、
-  17 gate中16個が未実装の現状で `decision: pass` が出てしまう。
+  16 gate中15個が未実装の現状で `decision: pass` が出てしまう。
 - **stage差し替えでwarn / block経路が両方動くこと**(T-054 DoD)。
 """
 
@@ -275,7 +275,7 @@ class TestStageDrivesTheDecision:
         assert decision["blocking_reasons"] == []
 
     def test_todays_real_policy_cannot_yield_pass(self, real_policy: GatePolicy) -> None:
-        # 16/17 gateが未実装である事実を可視化する。実装が進めばこのテストが落ちて知らせる
+        # 15/16 gateが未実装である事実を可視化する。実装が進めばこのテストが落ちて知らせる
         decision = GateEvaluator(policy=real_policy).evaluate(
             make_run_record(), created_at=EVALUATED_AT
         )
