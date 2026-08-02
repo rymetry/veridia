@@ -114,3 +114,30 @@ def _veridia_filename(schema_ref: str) -> str:
 def veridia_ref_for(schema_path: str | Path) -> str:
     """Build the `schema_ref` a veridia schema file is named by."""
     return f"{VERIDIA_REF_PREFIX}{Path(schema_path).name}"
+
+
+def veridia_ref_for_title(title: str) -> str:
+    """Find the veridia `schema_ref` whose schema declares `title`.
+
+    Skill manifests name their outputs by artifact title (`SourceMap`), not by file.
+    Matching on the declared title rather than transforming the string means a manifest
+    that names a contract nobody defines fails loudly instead of resolving to a
+    plausible-looking filename.
+
+    Raises:
+        SqkSchemaError: no veridia schema declares that title.
+    """
+    for filename in schema_filenames():
+        if load_veridia_schema(filename).get("title") == title:
+            return f"{VERIDIA_REF_PREFIX}{filename}"
+    raise SqkSchemaError(
+        f"no veridia schema declares title {title!r}; known: {', '.join(sorted(_known_titles()))}"
+    )
+
+
+def _known_titles() -> set[str]:
+    return {
+        str(load_veridia_schema(name).get("title"))
+        for name in schema_filenames()
+        if load_veridia_schema(name).get("title")
+    }

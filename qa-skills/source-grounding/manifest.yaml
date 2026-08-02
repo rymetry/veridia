@@ -1,0 +1,37 @@
+name: source-grounding
+version: 0.1.0
+owner: qa-platform
+description: 対象repoの変更(diffと変更ファイル一覧)から、変更とsourceの対応を示すSourceMapを生成する(W1)。
+
+trigger:
+  positive:
+    - "この変更が何に由来するかを整理してほしい"
+    - "PRのdiffからsourceの対応を出してほしい"
+  negative:
+    - "この変更のテスト条件を洗い出してほしい"
+    - "この変更のリスクを分析してほしい"
+
+inputs:
+  required:
+    - ChangeSet
+
+outputs:
+  required:
+    - SourceMap
+
+preconditions:
+  - ChangeSet identifies the repository and the resolved commit range.
+  - ChangeSet carries at least one source reference.
+
+quality_gates:
+  - Every extracted item names a span that appears in the supplied change.
+  - Items that cannot be located in the change are omitted, never invented.
+
+validators:
+  - validators/validate_schema.py
+  - validators/validate_skill_contract.py
+
+failure_modes:
+  - Span fabrication
+  - Trust label self-certification
+  - Empty grounding reported as coverage

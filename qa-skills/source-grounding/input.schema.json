@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://veridia.dev/qa-skills/source-grounding/input.schema.json",
+  "$comment": "skill schema semver: 0.1.0。skill固有のI/O契約であり、artifact契約(schemas/)ではない",
+  "title": "SourceGroundingInput",
+  "description": "W1の入力。source_connector の ChangeSet(`ChangeSet.as_dict()`)をそのまま受け取る形にしてある。skill側で組み立て直さないため、取得と解釈のあいだで値がずれない",
+  "type": "object",
+  "properties": {
+    "repository_label": { "type": "string", "minLength": 1 },
+    "base_sha": { "type": "string", "minLength": 1 },
+    "head_sha": { "type": "string", "minLength": 1 },
+    "source_refs": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "空のsourceからgroundingは作れない(§6.1)"
+    },
+    "trust_level": {
+      "type": "string",
+      "description": "取り込み層が供給する。skillはこの値を判断に使わず、出力にも書かない(ADR-0009)"
+    },
+    "changed_files": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "change_type": { "type": "string", "minLength": 1 },
+          "lines_added": { "type": "integer", "minimum": 0 },
+          "lines_deleted": { "type": "integer", "minimum": 0 },
+          "old_path": { "type": ["string", "null"] }
+        },
+        "required": ["path", "change_type"],
+        "additionalProperties": true
+      }
+    },
+    "diff_text": {
+      "type": "string",
+      "description": "unified diff本文。変更が無いrangeでは空文字になる"
+    }
+  },
+  "required": ["repository_label", "base_sha", "head_sha", "source_refs", "changed_files", "diff_text"],
+  "additionalProperties": true
+}

@@ -13,3 +13,17 @@ skills:
     policy_violation_count: null
     policy_violation_metrics: null
     changelog: changelog.md
+  - skill_id: source-grounding
+    version: "0.1.0"
+    owner: qa-platform
+    package_path: source-grounding
+    # 推論のみ。W1はconnectorが取得済みの変更を読むだけで、tool実行を必要としない
+    allowed_tools: []
+    input_schema: input.schema.json
+    output_schema: output.schema.json
+    schema_version: "0.1.0"
+    eval_status: not_collected
+    last_successful_run: null
+    policy_violation_count: null
+    policy_violation_metrics: null
+    changelog: changelog.md
