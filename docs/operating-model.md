@@ -90,6 +90,11 @@ PRD / Figma / Notion などのプロジェクト資料
 | test-architecture | ④ | test-plan.md、PRD、システム構成資料 |
 | test-design | ⑤ | test-plan.md、test-architecture.md、PRD、Figma |
 | test-cases | ⑥ | test-design.md |
+| exploratory-testing | ⑤⑥と並行 | test-plan.md、test-design.md |
+
+exploratory-testing はフェーズを持たない横断Skill。テスト計画で探索的テストが
+手段に指定された領域、または実行中に「まだ何かありそう」な領域で使う。
+発見は欠陥起票・上流フィードバック・premortem・test-cases の4経路へ流す。
 
 規模が小さくテストレベルが単一のプロジェクトでは、④を独立の対話とせず
 ③の中で「どこで確認するか」を一緒に決めて test-plan.md に書き込んでもよい。
