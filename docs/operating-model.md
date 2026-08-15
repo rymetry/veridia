@@ -34,12 +34,16 @@ PRD / Figma / Notion などのプロジェクト資料
         │      └─ PRDへのフィードバック → PRD修正 → 再レビュー
         ▼
 ③ テスト計画 ────────────────→ test-plan.md   ★トレーサビリティを持つ
-        │
+        │                        (何を・なぜ・どの深さで)
         ▼
-④ テスト設計 ────────────────→ test-design.md
-        │
+④ テストアーキテクチャ設計 ──→ test-architecture.md
+        │                        (どこで確認するか。重複と漏れを防ぐ)
         ▼
-⑤ テストケース作成 ──────────→ test-cases.md
+⑤ テスト設計 ────────────────→ test-design.md
+        │                        (何を確認するか+パラメーターの絞り方)
+        ▼
+⑥ テストケース作成 ──────────→ test-cases.md
+                                 (実行できるケース+実行順序)
 ```
 
 各フェーズの成果物は対象プロジェクトのリポジトリに保存する(例: `quality/` 配下)。
@@ -83,8 +87,13 @@ PRD / Figma / Notion などのプロジェクト資料
 | premortem | ① | PRD、Figma、Notion、既存の障害記録 |
 | quality-characteristics | ② | PRD、premortem.md |
 | test-planning | ③ | PRD、premortem.md、quality-characteristics.md、既存テスト資産 |
-| test-design | ④ | test-plan.md、PRD、Figma |
-| test-cases | ⑤ | test-design.md |
+| test-architecture | ④ | test-plan.md、PRD、システム構成資料 |
+| test-design | ⑤ | test-plan.md、test-architecture.md、PRD、Figma |
+| test-cases | ⑥ | test-design.md |
+
+規模が小さくテストレベルが単一のプロジェクトでは、④を独立の対話とせず
+③の中で「どこで確認するか」を一緒に決めて test-plan.md に書き込んでもよい。
+その場合 test-architecture.md は作らない。
 
 自律実行(agent化)は、対話での運用が安定し、必要性が明確になったフェーズから
 個別に検討する。最初からは行わない。
