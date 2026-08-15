@@ -83,7 +83,8 @@ PRD / Figma / Notion などのプロジェクト資料
 | premortem | ① | PRD、Figma、Notion、既存の障害記録 |
 | quality-characteristics | ② | PRD、premortem.md |
 | test-planning | ③ | PRD、premortem.md、quality-characteristics.md、既存テスト資産 |
-| test-design | ④⑤ | test-plan.md、PRD、Figma |
+| test-design | ④ | test-plan.md、PRD、Figma |
+| test-cases | ⑤ | test-design.md |
 
 自律実行(agent化)は、対話での運用が安定し、必要性が明確になったフェーズから
 個別に検討する。最初からは行わない。
