@@ -13,6 +13,7 @@ usage() {
   skills/                 → <対象>/.claude/skills/     (常に正本と同期・上書き)
   templates/              → <対象>/quality/templates/  (既定では既存ファイルを保持)
   docs/operating-model.md → <対象>/quality/operating-model.md (同上)
+  CLAUDE.md               → 前提規律へのポインタをマーカーブロックで追記・同期
 USAGE
 }
 
@@ -92,5 +93,27 @@ if copy_keep_existing "$SRC/docs/operating-model.md" "$TARGET/quality/operating-
 else
   echo "operating-model: 既存の quality/operating-model.md を保持しました"
 fi
+
+# 4. CLAUDE.md へ前提規律のポインタを追記(マーカーブロックは installer が管理・同期)
+#    Skillを経由せず quality/ 配下を直接編集する場合の取りこぼしを防ぐ
+MARKER_BEGIN='<!-- veridia:begin -->'
+MARKER_END='<!-- veridia:end -->'
+claude_md="$TARGET/CLAUDE.md"
+if [ -e "$claude_md" ]; then
+  # CLAUDE.md → AGENTS.md 等の symlink は実体へ解決してから書く(symlinkを壊さない)
+  claude_md="$(readlink -f "$claude_md")"
+  perl -0777 -i -pe \
+    's/\n*\Q<!-- veridia:begin -->\E.*?\Q<!-- veridia:end -->\E\n*/\n/s; s/\s+\z/\n/' \
+    "$claude_md"
+fi
+cat >> "$claude_md" <<BLOCK
+
+$MARKER_BEGIN
+<!-- このブロックは Veridia installer が管理する。手で編集しない -->
+- \`quality/\` 配下の成果物(premortem.md、test-plan.md 等)を作成・編集するときは、
+  \`.claude/skills/\` の該当Skillを起動し、その「前提規律(AIと作る成果物)」に従う。
+$MARKER_END
+BLOCK
+echo "CLAUDE.md: 前提規律へのポインタを設定しました(${claude_md#"$TARGET"/})"
 
 echo "完了。対象プロジェクトの Claude Code で /premortem から始められます(成果物は quality/ 配下)。"

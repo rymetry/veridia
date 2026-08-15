@@ -39,6 +39,27 @@ for dir in "$ROOT"/skills/*/; do
 done
 echo "Skill: ${skill_total}本を検査"
 
+# --- 1b. 前提規律ブロックの同一性(testing-with-genai を除く全Skillで一言一句同一) ---
+section "前提規律の同一性"
+expected_block=""
+kiritsu_count=0
+for dir in "$ROOT"/skills/*/; do
+  name="$(basename "$dir")"
+  [ "$name" = "testing-with-genai" ] && continue
+  block="$(awk '/^## 前提規律/{f=1; print; next} /^## /{f=0} f' "$dir/SKILL.md")"
+  if [ -z "$block" ]; then
+    ng "skills/$name/SKILL.md に「前提規律」節がない"
+    continue
+  fi
+  kiritsu_count=$((kiritsu_count + 1))
+  if [ -z "$expected_block" ]; then
+    expected_block="$block"
+  elif [ "$block" != "$expected_block" ]; then
+    ng "skills/$name の前提規律が他Skillと一致しない(ドリフト)"
+  fi
+done
+echo "前提規律: ${kiritsu_count}本の同一性を検査"
+
 # --- 2. テンプレート参照(SKILL内の quality/templates/* が正本 templates/ に実在) ---
 section "テンプレート参照"
 ref_total=0
@@ -79,8 +100,29 @@ else
 
   # 再実行しても安全か(冪等性)
   "$ROOT/install.sh" "$TMP" > /dev/null 2>&1 || ng "install.sh の再実行に失敗(冪等性)"
+
+  # CLAUDE.md ポインタ(再実行後もマーカーブロックが1組だけ)
+  begin_count="$(grep -cF '<!-- veridia:begin -->' "$TMP/CLAUDE.md" 2>/dev/null || echo 0)"
+  [ "$begin_count" = "1" ] || ng "導入先 CLAUDE.md のマーカーブロックが1組でない(${begin_count}組)"
 fi
 echo "installer: 導入・配置・参照解決・再実行を検査"
+
+# --- 4. installer(CLAUDE.md が AGENTS.md への symlink の構成) ---
+section "installer(symlink構成)"
+TMP2="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP2"' EXIT
+echo "# Agent Context" > "$TMP2/AGENTS.md"
+ln -s AGENTS.md "$TMP2/CLAUDE.md"
+if ! "$ROOT/install.sh" "$TMP2" > /dev/null 2>&1; then
+  ng "symlink構成への install.sh の実行に失敗"
+else
+  [ -L "$TMP2/CLAUDE.md" ] || ng "CLAUDE.md の symlink が実体ファイルに置き換わった"
+  grep -qF '<!-- veridia:begin -->' "$TMP2/AGENTS.md" || ng "ポインタが symlink 先の AGENTS.md に書かれていない"
+  "$ROOT/install.sh" "$TMP2" > /dev/null 2>&1 || ng "symlink構成への再実行に失敗"
+  begin_count2="$(grep -cF '<!-- veridia:begin -->' "$TMP2/AGENTS.md" || echo 0)"
+  [ "$begin_count2" = "1" ] || ng "symlink構成でマーカーブロックが1組でない(${begin_count2}組)"
+fi
+echo "installer(symlink構成): symlink保持・ポインタ書き込み・冪等性を検査"
 
 echo
 if [ "$FAIL" -ne 0 ]; then
