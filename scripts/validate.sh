@@ -159,6 +159,33 @@ if [ "$hooks_path" != ".githooks" ]; then
 fi
 echo "git hooks: pre-push / pre-commit の動作を検査"
 
+# --- 6. Claude Code フック(pre-tool-use-policy.sh の判定精度) ---
+section "Claude Code フック"
+policy="$ROOT/.claude/hooks/pre-tool-use-policy.sh"
+run_policy() {
+  printf '{"tool_input":{"command":%s}}' "$1" | bash "$policy" > /dev/null 2>&1
+}
+
+# ブロックすべきもの(exit 2)
+if run_policy '"git push --force origin main"'; then
+  ng "policy が main への force push をブロックしない"
+fi
+if run_policy '"git push -f origin HEAD:main"'; then
+  ng "policy が refspec 経由の force push をブロックしない"
+fi
+if run_policy '"git push origin +main"'; then
+  ng "policy が +refspec の force push をブロックしない"
+fi
+
+# 通すべきもの(exit 0)— 実際に起きた誤検知の回帰テストを含む
+run_policy '"git push -u origin feature-branch"' \
+  || ng "policy が通常の push をブロックしてしまう"
+run_policy '"git push --force origin feature-branch"' \
+  || ng "policy が main 以外への force push をブロックしてしまう"
+run_policy '"gh pr edit 1 --body-file body.md # 本文に --force-templates と git push main の文字列を含む"' \
+  || ng "policy がコマンド文字列の部分一致で誤検知する(回帰)"
+echo "Claude Code フック: ブロック3件・許可3件の判定を検査"
+
 echo
 if [ "$FAIL" -ne 0 ]; then
   echo "検証失敗"
