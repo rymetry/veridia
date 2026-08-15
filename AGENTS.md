@@ -1,14 +1,12 @@
 # Agent Context
 
-<!-- プロジェクト概要をここに記載してください。 -->
+Veridia — 開発の各フェーズに品質の観点を持ち込む、対話型Skill+テンプレートのハーネス。
+`skills/` と `templates/` が正本。設計思想は `docs/operating-model.md` を参照。
 
 ## コマンド
 
-<!-- プロジェクトで使うコマンドを記載してください。例:
-- Build: `...`
-- Test: `...`
-- Lint: `...`
--->
+- 構造検証: `bash scripts/validate.sh`(Skill規約・パス参照・installer の動作)
+- 対象プロジェクトへの導入: `./install.sh <対象プロジェクトのパス>`
 
 ## ルール
 

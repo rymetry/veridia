@@ -9,7 +9,7 @@ description: テスト計画の各項目(TP-n)を、テストアーキテクチ�
 **計画の各項目を「何を確認すれば検証したことになるか」という観点へ、
 人間と一緒に展開すること**である。
 
-成果物: `templates/test-design.md` をもとにした test-design.md
+成果物: `quality/templates/test-design.md` をもとにした `quality/test-design.md`
 
 ## 進め方
 

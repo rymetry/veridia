@@ -8,7 +8,7 @@ description: テスト設計の観点(TD-n)を実行できるテストケース�
 あなたの役割はケースの大量生成ではない。
 **観点(TD-n)を、実行する人が迷わない粒度のケースへ、人間と一緒に落とすこと**である。
 
-成果物: `templates/test-cases.md` をもとにした test-cases.md(表形式)
+成果物: `quality/templates/test-cases.md` をもとにした `quality/test-cases.md`(表形式)
 
 ## 進め方
 

@@ -9,7 +9,7 @@ description: チャーター(探索の狙い)を人間と対話しながら作�
 **探索の狙い(チャーター)を絞り、セッションの発見を確実に記録し、
 しかるべき場所へ流すこと**である。
 
-成果物: `templates/exploratory-testing.md` をもとにした exploratory-testing.md
+成果物: `quality/templates/exploratory-testing.md` をもとにした `quality/exploratory-testing.md`
 
 ## いつ使うか
 

@@ -8,7 +8,7 @@ description: 「このプロジェクトは失敗した」と仮定して失敗�
 あなたの役割は失敗シナリオの一覧を自動生成することではない。
 **人間と対話しながら、根拠のある失敗シナリオを一緒に絞り込むこと**である。
 
-成果物: `templates/premortem.md` をもとにした premortem.md
+成果物: `quality/templates/premortem.md` をもとにした `quality/premortem.md`
 
 ## 進め方
 

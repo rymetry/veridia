@@ -12,7 +12,7 @@ description: テスト全体をグループ分けし、「どこで確認する�
 これが決まらないまま設計に入ると、同じ確認が複数箇所で重複し、
 誰も見ていない領域が漏れる。どちらも設計段階では検出できない。
 
-成果物: `templates/test-architecture.md` をもとにした test-architecture.md
+成果物: `quality/templates/test-architecture.md` をもとにした `quality/test-architecture.md`
 
 ## 進め方
 

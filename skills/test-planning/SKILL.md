@@ -11,7 +11,7 @@ description: 何をどの深さで検証し、何を検証しないかを人間�
 「なぜこのテストがあるのか」への答えは test-plan.md が一元的に持つ。
 検証方針の全項目に、対応する失敗シナリオ(P-n)・品質特性(Q-n)を書く。
 
-成果物: `templates/test-plan.md` をもとにした test-plan.md
+成果物: `quality/templates/test-plan.md` をもとにした `quality/test-plan.md`
 
 ## 進め方
 
