@@ -100,5 +100,26 @@ exploratory-testing はフェーズを持たない横断Skill。テスト計画�
 ③の中で「どこで確認するか」を一緒に決めて test-plan.md に書き込んでもよい。
 その場合 test-architecture.md は作らない。
 
+## ドメインSkill
+
+特定の領域が関係するとき、コアのフェーズと並行して観点を持ち込むSkill。
+
+**新しい成果物は作らない。** いずれも既存の成果物(premortem / test-plan /
+test-architecture / test-design / test-cases)の該当箇所へ書き込む対話ガイドである。
+
+| Skill | 使う契機 | 主な参照 |
+|---|---|---|
+| performance-testing | 性能が品質特性に採用 / 大量データ・同時アクセスが前提 | ISTQB CT-PT |
+| security-testing | 認証・個人情報・決済・外部公開を扱う | ISTQB CT-SEC |
+| usability-testing | 使い勝手が価値に直結 / アクセシビリティ要件 | ISTQB CT-UT |
+| ai-testing | AI/確率的な振る舞いを含む(オラクルが立てにくい) | ISTQB CT-AI |
+| acceptance-testing | 業務部門・発注者の受け入れ判定がある | ISTQB CT-AcT |
+| model-based-testing | 状態・分岐が複雑でケース漏れが不安 | ISTQB CT-MBT |
+| mobile-testing | モバイルアプリを含む | ISTQB CT-MAT |
+| test-automation | 自動回帰が手段に入る / 自動化の投資判断 | ISTQB CTAL-TAE |
+
+どのドメインSkillを使うかは、test-planning の対話の中で決めるのが基本
+(品質特性と失敗シナリオが契機を示す)。
+
 自律実行(agent化)は、対話での運用が安定し、必要性が明確になったフェーズから
 個別に検討する。最初からは行わない。
