@@ -54,3 +54,5 @@ description: 性能(応答時間・スループット・資源)の観点を持�
 ## 参照シラバス
 
 ISTQB CT-PT(章構成レベルで確認。本文の全読に基づくものではない)
+
+調査済みの構成と精読時の追記先: `references/syllabus-notes.md`

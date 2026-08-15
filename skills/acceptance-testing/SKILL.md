@@ -63,3 +63,5 @@ description: 受け入れ基準の共同作成と、業務プロセスに沿っ�
 ## 参照シラバス
 
 ISTQB CT-AcT v1.0(章構成レベルで確認。本文の全読に基づくものではない)
+
+調査済みの構成と精読時の追記先: `references/syllabus-notes.md`

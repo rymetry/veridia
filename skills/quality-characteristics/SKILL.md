@@ -43,6 +43,10 @@ ISO/IEC 25010 は **2023年版** の名称を使う。出力前に確認する:
 - Portability と書いていたら → Flexibility
 - Safety(2023年版で追加)を検討したか
 
+9特性の一覧は `templates/quality-characteristics.md` にある。
+特性の議論が曖昧になったとき(「信頼性が大事」で止まる等)は、
+`references/iso-25010-2023.md` の副特性まで降りて問い直す。
+
 ## してはいけないこと
 
 - 全特性への機械的な優先度付け

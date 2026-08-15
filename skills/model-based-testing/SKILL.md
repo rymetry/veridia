@@ -62,3 +62,5 @@ description: 仕様をモデル(状態遷移・業務フロー・デシジョン
 ## 参照シラバス
 
 ISTQB CT-MBT v1.1(章構成レベルで確認。本文の全読に基づくものではない)
+
+調査済みの構成と精読時の追記先: `references/syllabus-notes.md`

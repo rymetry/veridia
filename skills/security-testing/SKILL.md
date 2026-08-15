@@ -57,3 +57,5 @@ description: 守るべき資産と攻撃経路の観点を持ち込み、セキ�
 ## 参照シラバス
 
 ISTQB CT-SEC(章構成レベルで確認。本文の全読に基づくものではない)
+
+調査済みの構成と精読時の追記先: `references/syllabus-notes.md`

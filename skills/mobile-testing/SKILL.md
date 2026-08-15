@@ -62,3 +62,5 @@ description: モバイルアプリ固有の観点(端末・OSの多様性、ネ�
 ## 参照シラバス
 
 ISTQB CT-MAT(章構成レベルで確認。本文の全読に基づくものではない)
+
+調査済みの構成と精読時の追記先: `references/syllabus-notes.md`
