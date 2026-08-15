@@ -117,9 +117,14 @@ test-architecture / test-design / test-cases)の該当箇所へ書き込む対�
 | model-based-testing | 状態・分岐が複雑でケース漏れが不安 | ISTQB CT-MBT |
 | mobile-testing | モバイルアプリを含む | ISTQB CT-MAT |
 | test-automation | 自動回帰が手段に入る / 自動化の投資判断 | ISTQB CTAL-TAE |
+| testing-with-genai | AIでテスト成果物を作る場面すべて(常時の規律) | ISTQB CT-GenAI |
 
 どのドメインSkillを使うかは、test-planning の対話の中で決めるのが基本
 (品質特性と失敗シナリオが契機を示す)。
+
+testing-with-genai のみ性格が異なり、**Veridiaの運用そのものを律する横断規律**である
+(AI出力の無検証採用の禁止・データの扱い・非決定性への対処)。
+特定の契機を待たず、全フェーズの前提となる。
 
 自律実行(agent化)は、対話での運用が安定し、必要性が明確になったフェーズから
 個別に検討する。最初からは行わない。
