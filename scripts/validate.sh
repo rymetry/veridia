@@ -124,6 +124,41 @@ else
 fi
 echo "installer(symlink構成): symlink保持・ポインタ書き込み・冪等性を検査"
 
+# --- 5. git hooks(.githooks/ の実行可否と動作) ---
+section "git hooks"
+for hook in pre-push pre-commit; do
+  [ -x "$ROOT/.githooks/$hook" ] || ng ".githooks/$hook が存在しないか実行権限がない"
+done
+
+# pre-push: main への push を拒否し、それ以外は通すこと
+if echo "refs/heads/feature abc refs/heads/main def" | "$ROOT/.githooks/pre-push" > /dev/null 2>&1; then
+  ng "pre-push が main への push をブロックしない"
+fi
+echo "refs/heads/feature abc refs/heads/feature def" | "$ROOT/.githooks/pre-push" > /dev/null 2>&1 \
+  || ng "pre-push が main 以外への push をブロックしてしまう"
+
+# pre-commit: コンフリクトマーカーのステージを拒否し、通常の変更は通すこと
+TMP3="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP2" "$TMP3"' EXIT
+git -C "$TMP3" init -q
+printf '<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> branch\n' > "$TMP3/conflict.txt"
+git -C "$TMP3" add conflict.txt
+if (cd "$TMP3" && "$ROOT/.githooks/pre-commit" > /dev/null 2>&1); then
+  ng "pre-commit がコンフリクトマーカーをブロックしない"
+fi
+git -C "$TMP3" rm -q --cached conflict.txt
+printf 'clean content\n' > "$TMP3/clean.txt"
+git -C "$TMP3" add clean.txt
+(cd "$TMP3" && "$ROOT/.githooks/pre-commit" > /dev/null 2>&1) \
+  || ng "pre-commit が通常の変更をブロックしてしまう"
+
+# hooksPath の設定確認(clone毎の設定のため警告のみ)
+hooks_path="$(git -C "$ROOT" config core.hooksPath 2>/dev/null || true)"
+if [ "$hooks_path" != ".githooks" ]; then
+  echo "警告: core.hooksPath が未設定です。有効化: git config core.hooksPath .githooks"
+fi
+echo "git hooks: pre-push / pre-commit の動作を検査"
+
 echo
 if [ "$FAIL" -ne 0 ]; then
   echo "検証失敗"

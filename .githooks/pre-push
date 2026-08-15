@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# main への直接 push をブロックする(変更は PR 経由で反映する)
+# エージェント(Claude Code / Codex)・人間の手作業を問わず git 層で強制する
+set -uo pipefail
+
+# stdin: <local ref> <local sha> <remote ref> <remote sha> が push 対象ごとに1行
+while read -r _local_ref _local_sha remote_ref _remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "ブロック: main への直接 push は禁止されています。" >&2
+    echo "ブランチを push して PR を作成してください(例: git push -u origin <branch>)。" >&2
+    exit 1
+  fi
+done
+
+exit 0

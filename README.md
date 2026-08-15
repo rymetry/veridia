@@ -54,7 +54,14 @@ scripts/validate.sh      構造検証
 
 ## 開発(このリポジトリ自体)
 
-構造の検証(Skill規約・パス参照・installer の動作)は次で行う。
+clone後に1回、git hooks(main への直接 push 禁止・コンフリクトマーカー検出)を有効化する。
+Claude Code・Codex・人間の手作業を問わず git 層で強制される。
+
+```bash
+git config core.hooksPath .githooks
+```
+
+構造の検証(Skill規約・パス参照・installer・git hooks の動作)は次で行う。
 
 ```bash
 bash scripts/validate.sh

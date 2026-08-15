@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# コンフリクトマーカーを含む変更のコミットをブロックする
+# エージェント(Claude Code / Codex)・人間の手作業を問わず git 層で強制する
+set -uo pipefail
+
+# ステージされた差分の追加行だけを見る(既存行への誤反応を避ける)
+# ======= 単独は Markdown の見出し下線と衝突するため、<<<<<<< / >>>>>>> / ||||||| を検出する
+matches="$(git diff --cached | grep -nE '^\+(<{7}|>{7}|\|{7})( |$)' || true)"
+
+if [ -n "$matches" ]; then
+  echo "ブロック: コンフリクトマーカーがステージされています。解消してからコミットしてください。" >&2
+  printf '%s\n' "$matches" >&2
+  exit 1
+fi
+
+exit 0
