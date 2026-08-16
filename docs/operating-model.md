@@ -38,7 +38,7 @@ installer で導入する。
 - `<対象>/quality/templates/` — テンプレート(既存ファイルは保持される。
   プロジェクトに合わせて書き換えてよい)
 - `<対象>/quality/operating-model.md` — この運用モデル
-- `<対象>/quality/syllabus-map.md` — シラバス精読ノートの全体地図
+- `<対象>/quality/istqb-jstqb-syllabus-map.md` — シラバス精読ノートの全体地図
 - `<対象>/CLAUDE.md` — 前提規律へのポインタ(installer がマーカーブロックを同期。
   Skillを経由せず `quality/` 配下を直接編集する場合の取りこぼしを防ぐ)
 
@@ -135,8 +135,8 @@ Skillの本文は起動時にのみ読み込まれる。肥大化を防ぐため
 3. **description は起動判断の材料だけ**。出典・詳細は本文へ
 4. シラバス等の一次資料を精読したら、要点は references のノートに追記する
    (SKILL.md 本体には反映が必要な規律だけを昇格させる)
-5. **どのSkillにどのノートがあるかの全体地図は `docs/syllabus-map.md`
-   (導入後は `quality/syllabus-map.md`)が持つ。**
+5. **どのSkillにどのノートがあるかの全体地図は `docs/istqb-jstqb-syllabus-map.md`
+   (導入後は `quality/istqb-jstqb-syllabus-map.md`)が持つ。**
    他Skillのノートを条件付きで使う場合は、SKILL.md から相対パス
    (`../<skill名>/references/…`)で参照する(配置は「最も使うSkill」から動かさない)
 
