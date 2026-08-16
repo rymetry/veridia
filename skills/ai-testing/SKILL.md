@@ -57,10 +57,10 @@ AI部分の最大の問題はオラクル(正解の定義)である。ここか�
 | AI固有の失敗シナリオ | premortem.md |
 | AI固有の品質特性(robustness・制御可能性等)の要否 | quality-characteristics.md |
 | 評価セットの整備・段階的リリース(shadow/canary)の要否 | test-plan.md |
-
-shadow(ユーザー影響ゼロで新旧を比較)→ canary(実トラフィックの一部で実測)の順が定石。
 | 観点+オラクルの型 | test-design.md |
 | 評価セットでの測定手順 / サンプリングレビューの設計 | test-cases.md |
+
+shadow(ユーザー影響ゼロで新旧を比較)→ canary(実トラフィックの一部で実測)の順が定石。
 
 ## してはいけないこと
 
