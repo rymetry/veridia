@@ -27,7 +27,8 @@ for dir in "$ROOT"/skills/*/; do
   fi
 
   lines="$(wc -l < "$skill" | tr -d ' ')"
-  [ "$lines" -le 100 ] || ng "skills/$name/SKILL.md が100行規約を超過(${lines}行)"
+  # Anthropic公式のSkill authoring best practices: SKILL.md本体は500行未満
+  [ "$lines" -lt 500 ] || ng "skills/$name/SKILL.md が500行規約(公式best practices)を超過(${lines}行)"
 
   head -1 "$skill" | grep -q '^---$' || ng "skills/$name/SKILL.md に frontmatter がない"
 

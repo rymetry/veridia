@@ -127,7 +127,8 @@ PRD / Figma / Notion などのプロジェクト資料
 
 Skillの本文は起動時にのみ読み込まれる。肥大化を防ぐため次の規約に従う。
 
-1. **SKILL.md は100行程度まで**。毎回の対話で使う手順・問いかけだけを書く
+1. **SKILL.md は500行未満**(Anthropic公式のSkill authoring best practices準拠)。
+   毎回の対話で使う手順・問いかけだけを書き、詳細は references/ へ分離する
 2. **条件付きの資料は `references/` へ**。特定の状況でだけ引くもの
    (チェックリスト・技法カタログ・シラバス構成ノート・精読の要点)は
    `skills/<name>/references/` に置き、SKILL.md から「◯◯のときは読む」と参照する

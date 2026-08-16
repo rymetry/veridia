@@ -45,7 +45,7 @@ Skillは正本(このリポジトリ)で管理し、更新したら installer �
 
 ```text
 skills/                  対話ガイド16本(フェーズ6+横断1+ドメイン8+GenAI規律1)
-  <name>/SKILL.md          毎回の対話で使う手順・問いかけ(100行以内)
+  <name>/SKILL.md          毎回の対話で使う手順・問いかけ(500行未満=公式best practices準拠)
   <name>/references/       条件付きで引く資料(シラバス精読ノート・チェックリスト等)
 templates/               成果物の雛形7枚
 docs/operating-model.md  運用モデル(正本)
