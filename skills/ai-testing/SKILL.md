@@ -79,4 +79,4 @@ shadow(ユーザー影響ゼロで新旧を比較)→ canary(実トラフィッ�
 
 ISTQB CT-AI v2.0(ISO/IEC 25059を含む)(本文精読済み 2026-08-15。要約はAIによる)
 
-調査済みの構成と精読時の追記先: `references/syllabus-notes.md`
+精読ノート: `references/syllabus-notes.md`

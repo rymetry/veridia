@@ -74,4 +74,4 @@ description: モバイルアプリ固有の観点(端末・OSの多様性、ネ�
 
 ISTQB CT-MAT(本文精読済み 2026-08-15。要約はAIによる)
 
-調査済みの構成と精読時の追記先: `references/syllabus-notes.md`
+精読ノート: `references/syllabus-notes.md`

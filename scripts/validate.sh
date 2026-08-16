@@ -239,6 +239,23 @@ expect_allow '"cat > doc.md <<EOF\n禁止例: ; git push origin main\nEOF"' \
   "policy がヒアドキュメント本文で誤検知する(回帰: 本文はデータ)"
 echo "Claude Code フック: ブロック9件・許可11件の判定を検査"
 
+# stop-verify: ラベル付き実マーカーを検出し、Markdownの見出し下線(=======)には反応しないこと
+stop_verify="$ROOT/.claude/hooks/stop-verify.sh"
+TMP6="$WORK/stopverify"
+mkdir -p "$TMP6"
+git -C "$TMP6" init -q
+printf 'x\n<<<<<<< HEAD\ny\n>>>>>>> branch\n' > "$TMP6/a.txt"
+git -C "$TMP6" add a.txt
+if (cd "$TMP6" && bash "$stop_verify" > /dev/null 2>&1); then
+  ng "stop-verify がラベル付きコンフリクトマーカーを検出しない"
+fi
+git -C "$TMP6" rm -q --cached a.txt && rm "$TMP6/a.txt"
+printf '見出し\n=======\n本文\n' > "$TMP6/b.md"
+git -C "$TMP6" add b.md
+(cd "$TMP6" && bash "$stop_verify" > /dev/null 2>&1) \
+  || ng "stop-verify がMarkdownの見出し下線(=======)に誤反応する"
+echo "stop-verify: 実マーカー検出と見出し下線の非検出を検査"
+
 echo
 if [ "$FAIL" -ne 0 ]; then
   echo "検証失敗"

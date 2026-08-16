@@ -160,6 +160,10 @@
 
 ## 昇格候補(最大5件)
 
+**反映状況(2026-08-16)**: 全5件反映済み(1 skills/test-planning「決める」+templates/test-plan
+「実行の方針」節 / 2 templates/test-plan 終了基準 / 3 skills/test-planning 対話 /
+4 operating-model 再レビュー節 / 5 templates/test-cases 完了判定)
+
 1. **skills/test-planning/SKILL.md**: 「決める」に実行順序の観点を追加 —
    重点領域は深さ優先で先に潰し、時間逼迫時は幅優先へ切替。時間切れ時に
    「延長か残存リスク受容か」を判断できる形で計画する(1.3.4)。
