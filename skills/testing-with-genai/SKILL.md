@@ -83,4 +83,4 @@ testing-with-genai  テスト活動にAIを使う(道具としての規律)← �
 
 ISTQB CT-GenAI v1.0(2025。本文精読済み 2026-08-15。要約はAIによる)
 
-調査済みの構成(目次全確認)と精読時の追記先: `references/syllabus-notes.md`
+精読ノート: `references/syllabus-notes.md`
