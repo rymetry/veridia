@@ -110,7 +110,7 @@ else
   [ "$src_templates" = "$dst_templates" ] || ng "導入されたテンプレート数が不一致(正本${src_templates} / 導入先${dst_templates})"
 
   [ -f "$TMP/quality/operating-model.md" ] || ng "導入先に quality/operating-model.md がない"
-  [ -f "$TMP/quality/syllabus-map.md" ] || ng "導入先に quality/syllabus-map.md がない(全体地図の導入漏れ)"
+  [ -f "$TMP/quality/istqb-jstqb-syllabus-map.md" ] || ng "導入先に quality/istqb-jstqb-syllabus-map.md がない(全体地図の導入漏れ)"
 
   # 導入先で、SKILL.md が参照する quality/templates/* が実際に解決するか
   while IFS= read -r ref; do
