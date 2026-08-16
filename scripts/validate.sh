@@ -43,6 +43,16 @@ for dir in "$ROOT"/skills/*/; do
   while IFS= read -r ref; do
     [ -f "$dir/$ref" ] || ng "skills/$name/SKILL.md が参照する $ref が存在しない"
   done < <(grep -ohE '(\.\./[A-Za-z0-9-]+/)?references/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
+
+  # 公式best practices: 100行超の参照ファイルは冒頭に目次を持つ
+  for ref_file in "$dir"references/*.md; do
+    [ -f "$ref_file" ] || continue
+    ref_lines="$(wc -l < "$ref_file" | tr -d ' ')"
+    if [ "$ref_lines" -gt 100 ]; then
+      grep -q '^## 目次$' "$ref_file" \
+        || ng "skills/$name/references/$(basename "$ref_file") が100行超なのに目次がない(公式best practices)"
+    fi
+  done
 done
 echo "Skill: ${skill_total}本を検査"
 
