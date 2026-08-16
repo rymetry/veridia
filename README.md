@@ -21,6 +21,7 @@ Skillは成果物の自動生成装置ではない。人間と対話しながら
 | `<対象>/.claude/skills/` | Skill 16本(references 含む) | 同名Skillを正本で上書き(正本で削除・改名した旧Skillは手動で削除) |
 | `<対象>/quality/templates/` | 成果物テンプレート7枚 | 既存ファイルは保持(`--force-templates` で上書き) |
 | `<対象>/quality/operating-model.md` | 運用モデル | 同上 |
+| `<対象>/quality/syllabus-map.md` | シラバス精読ノートの全体地図 | 同上 |
 | `<対象>/CLAUDE.md` | 前提規律へのポインタ(マーカーブロック) | installer が同期 |
 
 テンプレートと運用モデルはプロジェクト側で書き換えてよいため、既定では上書きしない。
@@ -44,7 +45,7 @@ Skillは正本(このリポジトリ)で管理し、更新したら installer �
 
 ```text
 skills/                  対話ガイド16本(フェーズ6+横断1+ドメイン8+GenAI規律1)
-  <name>/SKILL.md          毎回の対話で使う手順・問いかけ(100行以内)
+  <name>/SKILL.md          毎回の対話で使う手順・問いかけ(500行未満=公式best practices準拠)
   <name>/references/       条件付きで引く資料(シラバス精読ノート・チェックリスト等)
 templates/               成果物の雛形7枚
 docs/operating-model.md  運用モデル(正本)

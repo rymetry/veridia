@@ -13,6 +13,7 @@ usage() {
   skills/                 → <対象>/.claude/skills/     (同名Skillを正本で上書き)
   templates/              → <対象>/quality/templates/  (既定では既存ファイルを保持)
   docs/operating-model.md → <対象>/quality/operating-model.md (同上)
+  docs/syllabus-map.md    → <対象>/quality/syllabus-map.md (同上。ノートの全体地図)
   CLAUDE.md               → 前提規律へのポインタをマーカーブロックで追記・同期
 
 前提:
@@ -48,6 +49,7 @@ TARGET="$(cd "$TARGET" && pwd)"
 [ -d "$SRC/skills" ] || err "skills/ が見つかりません(Veridiaリポジトリのルートから実行してください)"
 [ -d "$SRC/templates" ] || err "templates/ が見つかりません"
 [ -f "$SRC/docs/operating-model.md" ] || err "docs/operating-model.md が見つかりません"
+[ -f "$SRC/docs/syllabus-map.md" ] || err "docs/syllabus-map.md が見つかりません"
 
 if [ ! -e "$TARGET/.git" ]; then
   echo "注意: $TARGET は git リポジトリではありません。そのまま続行します。" >&2
@@ -128,6 +130,13 @@ if copy_keep_existing "$SRC/docs/operating-model.md" "$TARGET/quality/operating-
   echo "operating-model: quality/operating-model.md へコピーしました"
 else
   echo "operating-model: 既存の quality/operating-model.md を保持しました"
+fi
+
+# 3b. syllabus-map(シラバス精読ノートの全体地図) → quality/syllabus-map.md
+if copy_keep_existing "$SRC/docs/syllabus-map.md" "$TARGET/quality/syllabus-map.md"; then
+  echo "syllabus-map: quality/syllabus-map.md へコピーしました"
+else
+  echo "syllabus-map: 既存の quality/syllabus-map.md を保持しました"
 fi
 
 # 4. CLAUDE.md へ前提規律のポインタを追記(マーカーブロックは installer が管理・同期)

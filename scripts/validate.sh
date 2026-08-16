@@ -27,7 +27,8 @@ for dir in "$ROOT"/skills/*/; do
   fi
 
   lines="$(wc -l < "$skill" | tr -d ' ')"
-  [ "$lines" -le 100 ] || ng "skills/$name/SKILL.md が100行規約を超過(${lines}行)"
+  # Anthropic公式のSkill authoring best practices: SKILL.md本体は500行未満
+  [ "$lines" -lt 500 ] || ng "skills/$name/SKILL.md が500行規約(公式best practices)を超過(${lines}行)"
 
   head -1 "$skill" | grep -q '^---$' || ng "skills/$name/SKILL.md に frontmatter がない"
 
@@ -42,6 +43,16 @@ for dir in "$ROOT"/skills/*/; do
   while IFS= read -r ref; do
     [ -f "$dir/$ref" ] || ng "skills/$name/SKILL.md が参照する $ref が存在しない"
   done < <(grep -ohE '(\.\./[A-Za-z0-9-]+/)?references/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
+
+  # 公式best practices: 100行超の参照ファイルは冒頭に目次を持つ
+  for ref_file in "$dir"references/*.md; do
+    [ -f "$ref_file" ] || continue
+    ref_lines="$(wc -l < "$ref_file" | tr -d ' ')"
+    if [ "$ref_lines" -gt 100 ]; then
+      grep -q '^## 目次$' "$ref_file" \
+        || ng "skills/$name/references/$(basename "$ref_file") が100行超なのに目次がない(公式best practices)"
+    fi
+  done
 done
 echo "Skill: ${skill_total}本を検査"
 
@@ -99,6 +110,7 @@ else
   [ "$src_templates" = "$dst_templates" ] || ng "導入されたテンプレート数が不一致(正本${src_templates} / 導入先${dst_templates})"
 
   [ -f "$TMP/quality/operating-model.md" ] || ng "導入先に quality/operating-model.md がない"
+  [ -f "$TMP/quality/syllabus-map.md" ] || ng "導入先に quality/syllabus-map.md がない(全体地図の導入漏れ)"
 
   # 導入先で、SKILL.md が参照する quality/templates/* が実際に解決するか
   while IFS= read -r ref; do

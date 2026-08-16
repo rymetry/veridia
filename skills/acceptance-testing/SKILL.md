@@ -1,6 +1,6 @@
 ---
 name: acceptance-testing
-description: 受け入れ基準の共同作成と、業務プロセスに沿った受け入れテストの観点を持ち込む。業務利用者・発注者による「受け入れ」が必要なプロダクトで、②〜⑥と並行して使う。確認会(R表)の運用を深める。
+description: 受け入れ基準の共同作成と、業務プロセスに沿った受け入れテストの観点を持ち込む。業務利用者・発注者による「受け入れ」が必要なプロダクトで、①〜⑥と並行して使う(受け入れの存在はPRDから自明なため早期から)。確認会(R表)の運用を深める。
 ---
 
 # Acceptance Testing(対話ガイド)
@@ -75,4 +75,4 @@ description: 受け入れ基準の共同作成と、業務プロセスに沿っ�
 
 ISTQB CT-AcT v1.0(本文精読済み 2026-08-15。要約はAIによる)
 
-精読ノート: `references/syllabus-notes.md`
+Gherkin・BPMN/DMNモデリング・非機能受け入れを深掘りするときに読む: `references/syllabus-notes.md`

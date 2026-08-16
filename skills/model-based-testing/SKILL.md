@@ -71,4 +71,4 @@ description: 仕様をモデル(状態遷移・業務フロー・デシジョン
 
 ISTQB CT-MBT v1.1(本文精読済み 2026-08-15。要約はAIによる)
 
-精読ノート: `references/syllabus-notes.md`
+選択基準の詳細・モデリング実務・変更の影響マップ・導入判断を深掘りするときに読む: `references/syllabus-notes.md`

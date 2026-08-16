@@ -81,6 +81,7 @@ testing-with-genai  テスト活動にAIを使う(道具としての規律)← �
 
 ## 参照シラバス
 
-ISTQB CT-GenAI v1.0(2025。本文精読済み 2026-08-15。要約はAIによる)
+ISTQB CT-GenAI v1.0(2025。本文精読済み 2026-08-15。現行は v1.1 —
+release note 要旨で構造・学習目標・スコープの変更なしを確認済み。要約はAIによる)
 
-精読ノート: `references/syllabus-notes.md`
+プロンプト技法・リスクの詳細・LLM基盤・組織導入手順を深掘りするときに読む: `references/syllabus-notes.md`

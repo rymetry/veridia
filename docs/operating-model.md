@@ -38,6 +38,7 @@ installer で導入する。
 - `<対象>/quality/templates/` — テンプレート(既存ファイルは保持される。
   プロジェクトに合わせて書き換えてよい)
 - `<対象>/quality/operating-model.md` — この運用モデル
+- `<対象>/quality/syllabus-map.md` — シラバス精読ノートの全体地図
 - `<対象>/CLAUDE.md` — 前提規律へのポインタ(installer がマーカーブロックを同期。
   Skillを経由せず `quality/` 配下を直接編集する場合の取りこぼしを防ぐ)
 
@@ -126,14 +127,16 @@ PRD / Figma / Notion などのプロジェクト資料
 
 Skillの本文は起動時にのみ読み込まれる。肥大化を防ぐため次の規約に従う。
 
-1. **SKILL.md は100行程度まで**。毎回の対話で使う手順・問いかけだけを書く
+1. **SKILL.md は500行未満**(Anthropic公式のSkill authoring best practices準拠)。
+   毎回の対話で使う手順・問いかけだけを書き、詳細は references/ へ分離する
 2. **条件付きの資料は `references/` へ**。特定の状況でだけ引くもの
    (チェックリスト・技法カタログ・シラバス構成ノート・精読の要点)は
    `skills/<name>/references/` に置き、SKILL.md から「◯◯のときは読む」と参照する
 3. **description は起動判断の材料だけ**。出典・詳細は本文へ
 4. シラバス等の一次資料を精読したら、要点は references のノートに追記する
    (SKILL.md 本体には反映が必要な規律だけを昇格させる)
-5. **どのSkillにどのノートがあるかの全体地図は `docs/syllabus-map.md` が持つ。**
+5. **どのSkillにどのノートがあるかの全体地図は `docs/syllabus-map.md`
+   (導入後は `quality/syllabus-map.md`)が持つ。**
    他Skillのノートを条件付きで使う場合は、SKILL.md から相対パス
    (`../<skill名>/references/…`)で参照する(配置は「最も使うSkill」から動かさない)
 
