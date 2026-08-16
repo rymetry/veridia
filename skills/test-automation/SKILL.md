@@ -75,4 +75,4 @@ E2E偏重は保守コストで破綻する(test-architecture の委譲と整合�
 
 ISTQB CTAL-TAE v2.0(本文精読済み 2026-08-15。要約はAIによる)
 
-精読ノート: `references/syllabus-notes.md`
+gTAA・CI/CD組み込み・メトリクスと失敗分析を深掘りするときに読む: `references/syllabus-notes.md`

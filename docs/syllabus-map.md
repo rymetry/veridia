@@ -36,7 +36,7 @@ Specialist 9本は**本文精読済み**(各Skillの references/syllabus-notes.m
 | Acceptance Testing (CT-AcT) v1.0 (2019) | **本文精読(2026-08-15)** | **skills/acceptance-testing 作成済み** |
 | Model-Based Testing (CT-MBT) v1.1 | **本文精読(2026-08-15)** | **skills/model-based-testing 作成済み** |
 | Mobile Application Testing (CT-MAT) | **本文精読(2026-08-15)** | **skills/mobile-testing 作成済み** |
-| Testing with GenAI (CT-GenAI) v1.0 (2025) | **本文精読(2026-08-15)** | **skills/testing-with-genai 作成済み**(AIでテストする側の規律。ai-testingと役割が別) |
+| Testing with GenAI (CT-GenAI) v1.0 (2025。現行v1.1=minor update、release note要旨確認済み・影響なし) | **本文精読(2026-08-15)** | **skills/testing-with-genai 作成済み**(AIでテストする側の規律。ai-testingと役割が別) |
 | Game Testing / Automotive 等 | 未調査 | 該当ドメインの案件が来たら作成 |
 
 ※ Specialist の名称・版は ISTQB のポートフォリオ改訂で変わりうる。

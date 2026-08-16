@@ -21,6 +21,7 @@ Skillは成果物の自動生成装置ではない。人間と対話しながら
 | `<対象>/.claude/skills/` | Skill 16本(references 含む) | 同名Skillを正本で上書き(正本で削除・改名した旧Skillは手動で削除) |
 | `<対象>/quality/templates/` | 成果物テンプレート7枚 | 既存ファイルは保持(`--force-templates` で上書き) |
 | `<対象>/quality/operating-model.md` | 運用モデル | 同上 |
+| `<対象>/quality/syllabus-map.md` | シラバス精読ノートの全体地図 | 同上 |
 | `<対象>/CLAUDE.md` | 前提規律へのポインタ(マーカーブロック) | installer が同期 |
 
 テンプレートと運用モデルはプロジェクト側で書き換えてよいため、既定では上書きしない。

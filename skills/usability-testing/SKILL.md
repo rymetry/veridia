@@ -79,4 +79,4 @@ UX                 利用全体の体験(期待・感情も含む)
 
 ISTQB CT-UT v1.0(本文精読済み 2026-08-15。要約はAIによる)
 
-精読ノート: `references/syllabus-notes.md`
+評価方法の詳細(テスト運営・レビュー手順・アンケート)を深掘りするときに読む: `references/syllabus-notes.md`
