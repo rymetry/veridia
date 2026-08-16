@@ -4,6 +4,11 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FAIL=0
+VMARK_BEGIN='<!-- veridia:begin -->'  # install.sh の MARKER_BEGIN と一致させること
+
+# 一時ディレクトリは単一のルート配下にまとめ、trap は1回だけ設定する
+WORK="$(mktemp -d)"
+trap 'rm -rf "$WORK"' EXIT
 
 ng() { echo "NG: $*"; FAIL=1; }
 section() { echo; echo "== $* =="; }
@@ -73,8 +78,8 @@ echo "テンプレート参照: ${ref_total}件を検査"
 
 # --- 3. installer の動作(一時ディレクトリへ導入して配置と参照解決を確認) ---
 section "installer"
-TMP="$(mktemp -d)"
-trap 'rm -rf "$TMP"' EXIT
+TMP="$WORK/basic"
+mkdir -p "$TMP"
 
 if ! "$ROOT/install.sh" "$TMP" > /dev/null 2>&1; then
   ng "install.sh の実行に失敗"
@@ -103,51 +108,60 @@ else
   "$ROOT/install.sh" "$TMP" > /dev/null 2>&1 || ng "install.sh の再実行に失敗(冪等性)"
 
   # CLAUDE.md ポインタ(再実行後もマーカーブロックが1組だけ)
-  begin_count="$(grep -cF '<!-- veridia:begin -->' "$TMP/CLAUDE.md" 2>/dev/null || echo 0)"
-  [ "$begin_count" = "1" ] || ng "導入先 CLAUDE.md のマーカーブロックが1組でない(${begin_count}組)"
+  begin_count="$(grep -cF "$VMARK_BEGIN" "$TMP/CLAUDE.md" 2>/dev/null || true)"
+  [ "$begin_count" = "1" ] || ng "導入先 CLAUDE.md のマーカーブロックが1組でない(${begin_count:-0}組)"
 fi
 echo "installer: 導入・配置・参照解決・再実行を検査"
 
 # --- 4. installer(CLAUDE.md が AGENTS.md への symlink の構成) ---
 section "installer(symlink構成)"
-TMP2="$(mktemp -d)"
-trap 'rm -rf "$TMP" "$TMP2"' EXIT
+TMP2="$WORK/claude-symlink"
+mkdir -p "$TMP2"
 echo "# Agent Context" > "$TMP2/AGENTS.md"
 ln -s AGENTS.md "$TMP2/CLAUDE.md"
 if ! "$ROOT/install.sh" "$TMP2" > /dev/null 2>&1; then
   ng "symlink構成への install.sh の実行に失敗"
 else
   [ -L "$TMP2/CLAUDE.md" ] || ng "CLAUDE.md の symlink が実体ファイルに置き換わった"
-  grep -qF '<!-- veridia:begin -->' "$TMP2/AGENTS.md" || ng "ポインタが symlink 先の AGENTS.md に書かれていない"
+  grep -qF "$VMARK_BEGIN" "$TMP2/AGENTS.md" || ng "ポインタが symlink 先の AGENTS.md に書かれていない"
   "$ROOT/install.sh" "$TMP2" > /dev/null 2>&1 || ng "symlink構成への再実行に失敗"
-  begin_count2="$(grep -cF '<!-- veridia:begin -->' "$TMP2/AGENTS.md" || echo 0)"
-  [ "$begin_count2" = "1" ] || ng "symlink構成でマーカーブロックが1組でない(${begin_count2}組)"
+  begin_count2="$(grep -cF "$VMARK_BEGIN" "$TMP2/AGENTS.md" || true)"
+  [ "$begin_count2" = "1" ] || ng "symlink構成でマーカーブロックが1組でない(${begin_count2:-0}組)"
 fi
 echo "installer(symlink構成): symlink保持・ポインタ書き込み・冪等性を検査"
 
 # --- 4b. installer(危険構成の拒否) ---
 section "installer(危険構成の拒否)"
-TMP4="$(mktemp -d)"
-TMP5="$(mktemp -d)"
-trap 'rm -rf "$TMP" "$TMP2" "$TMP3" "$TMP4" "$TMP5"' EXIT
+TMP4="$WORK/selfhost"
+TMP5="$WORK/badmarker"
+mkdir -p "$TMP4" "$TMP5"
 
 # .claude/skills が symlink の対象(Veridia同形の自己ホスト構成)には導入を拒否し、
-# リンク先の正本を破壊しないこと
-mkdir -p "$TMP4/skills/own-skill" "$TMP4/.claude"
-echo "original content" > "$TMP4/skills/own-skill/SKILL.md"
+# リンク先の正本を破壊しないこと。カナリアは正本と衝突する名前(premortem)にする
+mkdir -p "$TMP4/skills/premortem" "$TMP4/.claude"
+echo "original content" > "$TMP4/skills/premortem/SKILL.md"
 ln -s ../skills "$TMP4/.claude/skills"
-if "$ROOT/install.sh" "$TMP4" > /dev/null 2>&1; then
+if out="$("$ROOT/install.sh" "$TMP4" 2>&1)"; then
   ng "installer が .claude/skills symlink 構成への導入を拒否しない"
+elif ! echo "$out" | grep -q "symlink のため導入できません"; then
+  ng "installer の拒否理由が期待と異なる: $out"
 fi
-[ "$(cat "$TMP4/skills/own-skill/SKILL.md" 2>/dev/null)" = "original content" ] \
+[ "$(cat "$TMP4/skills/premortem/SKILL.md" 2>/dev/null)" = "original content" ] \
   || ng "installer が symlink 先の正本を破壊した"
 
-# begin/end マーカーが不完全な CLAUDE.md への導入は失敗し、ブロックを増殖させないこと
-printf '# X\n\n<!-- veridia:begin -->\nbroken\n' > "$TMP5/CLAUDE.md"
-if "$ROOT/install.sh" "$TMP5" > /dev/null 2>&1; then
+# begin/end マーカーが不完全な CLAUDE.md への導入は、何も変更せずに失敗すること
+printf '# X\n\n%s\nbroken\n' "$VMARK_BEGIN" > "$TMP5/CLAUDE.md"
+cp "$TMP5/CLAUDE.md" "$WORK/badmarker-orig"
+if out="$("$ROOT/install.sh" "$TMP5" 2>&1)"; then
   ng "installer が不完全なマーカーの CLAUDE.md への追記を拒否しない"
+elif ! echo "$out" | grep -q "マーカーが不完全"; then
+  ng "installer の拒否理由が期待と異なる: $out"
 fi
-echo "installer(危険構成の拒否): symlink拒否・正本保全・不完全マーカー拒否を検査"
+cmp -s "$TMP5/CLAUDE.md" "$WORK/badmarker-orig" \
+  || ng "installer が拒否したのに CLAUDE.md を変更した"
+[ ! -e "$TMP5/quality" ] && [ ! -e "$TMP5/.claude" ] \
+  || ng "installer が拒否したのに導入先へ書き込んだ(事前検証が導入後に走っている)"
+echo "installer(危険構成の拒否): symlink拒否・正本保全・不完全マーカー時の無変更を検査"
 
 # --- 5. git hooks(.githooks/ の実行可否と動作) ---
 section "git hooks"
@@ -163,8 +177,8 @@ echo "refs/heads/feature abc refs/heads/feature def" | "$ROOT/.githooks/pre-push
   || ng "pre-push が main 以外への push をブロックしてしまう"
 
 # pre-commit: コンフリクトマーカーのステージを拒否し、通常の変更は通すこと
-TMP3="$(mktemp -d)"
-trap 'rm -rf "$TMP" "$TMP2" "$TMP3"' EXIT
+TMP3="$WORK/githooks"
+mkdir -p "$TMP3"
 git -C "$TMP3" init -q
 printf '<<<<<<< HEAD\nours\n=======\ntheirs\n>>>>>>> branch\n' > "$TMP3/conflict.txt"
 git -C "$TMP3" add conflict.txt
@@ -190,41 +204,39 @@ policy="$ROOT/.claude/hooks/pre-tool-use-policy.sh"
 run_policy() {
   printf '{"tool_input":{"command":%s}}' "$1" | bash "$policy" > /dev/null 2>&1
 }
+expect_block() { if run_policy "$1"; then ng "$2"; fi; }
+expect_allow() { run_policy "$1" || ng "$2"; }
 
-# ブロックすべきもの(exit 2)— ルールは git 層と同じ「main への push 禁止」
-if run_policy '"git push origin main"'; then
-  ng "policy が main への push をブロックしない"
-fi
-if run_policy '"git push --force origin main"'; then
-  ng "policy が main への force push をブロックしない"
-fi
-if run_policy '"git push -f origin HEAD:main"'; then
-  ng "policy が refspec 経由の push をブロックしない"
-fi
-if run_policy '"git push origin +main"'; then
-  ng "policy が +refspec の push をブロックしない"
-fi
-if run_policy '"/usr/bin/git push origin main"'; then
-  ng "policy がパス指定の git をブロックしない(回帰)"
-fi
-if run_policy '"bash -c \"git push --force origin main\""'; then
-  ng "policy が bash -c ラッパーをブロックしない(回帰)"
-fi
+# ブロックすべきもの — ルールは git 層と同じ「main への push 禁止」
+expect_block '"git push origin main"' "policy が main への push をブロックしない"
+expect_block '"git push --force origin main"' "policy が main への force push をブロックしない"
+expect_block '"git push -f origin HEAD:main"' "policy が refspec 経由の push をブロックしない"
+expect_block '"git push origin +main"' "policy が +refspec の push をブロックしない"
+expect_block '"/usr/bin/git push origin main"' "policy がパス指定の git をブロックしない(回帰)"
+expect_block '"bash -c \"git push --force origin main\""' "policy が bash -c ラッパーをブロックしない(回帰)"
+expect_block '"bash -lc \"git push origin main\""' "policy が結合オプション -lc をブロックしない(回帰)"
+expect_block '"command git push origin main"' "policy が command プレフィックスをブロックしない(回帰)"
+expect_block '"sudo git push --force origin main"' "policy が sudo プレフィックスをブロックしない(回帰)"
 
-# 通すべきもの(exit 0)— 実際に起きた誤検知の回帰テストを含む
-run_policy '"git push -u origin feature-branch"' \
-  || ng "policy が通常の push をブロックしてしまう"
-run_policy '"git push --force origin feature-branch"' \
-  || ng "policy が main 以外への force push をブロックしてしまう"
-run_policy '"git pull origin main"' \
-  || ng "policy が main からの pull をブロックしてしまう"
-run_policy '"gh pr edit 1 --body-file body.md # 本文に --force-templates と git push main の文字列を含む"' \
-  || ng "policy がコマンド文字列の部分一致で誤検知する(回帰)"
-run_policy '"echo \"do not run: git push --force origin main\" | tee note.txt"' \
-  || ng "policy が引用文字列内の語で誤検知する(回帰: パイプ分割)"
-run_policy '"git commit -m \"memo; git push --force origin main is forbidden\""' \
-  || ng "policy がコミットメッセージ内の語で誤検知する(回帰: セミコロン分割)"
-echo "Claude Code フック: ブロック6件・許可6件の判定を検査"
+# 通すべきもの — 実際に起きた誤検知の回帰テストを含む
+expect_allow '"git push -u origin feature-branch"' "policy が通常の push をブロックしてしまう"
+expect_allow '"git push --force origin feature-branch"' "policy が main 以外への force push をブロックしてしまう"
+expect_allow '"git pull origin main"' "policy が main からの pull をブロックしてしまう"
+expect_allow '"git push main feature-branch"' "policy が main という名のリモートへの push をブロックしてしまう(回帰)"
+expect_allow '"git stash push -m main"' "policy が git stash push をブロックしてしまう(回帰)"
+expect_allow '"gh pr edit 1 --body-file body.md # 本文に --force-templates と git push main の文字列を含む"' \
+  "policy がコマンド文字列の部分一致で誤検知する(回帰)"
+expect_allow '"echo \"do not run: git push --force origin main\" | tee note.txt"' \
+  "policy が引用文字列内の語で誤検知する(回帰: パイプ分割)"
+expect_allow '"git commit -m \"memo; git push --force origin main is forbidden\""' \
+  "policy がコミットメッセージ内の語で誤検知する(回帰: セミコロン分割)"
+expect_allow '"git checkout main\ngit pull\ngit push -u origin feature-branch"' \
+  "policy が複数行コマンドの行をまたいで誤検知する(回帰: 改行セパレータ)"
+expect_allow '"git commit -m don'\''t push to main yet"' \
+  "policy が引用符不整合のコマンドで誤検知する(回帰: fail-open)"
+expect_allow '"cat > doc.md <<EOF\n禁止例: ; git push origin main\nEOF"' \
+  "policy がヒアドキュメント本文で誤検知する(回帰: 本文はデータ)"
+echo "Claude Code フック: ブロック9件・許可11件の判定を検査"
 
 echo
 if [ "$FAIL" -ne 0 ]; then

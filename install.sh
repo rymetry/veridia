@@ -14,6 +14,9 @@ usage() {
   templates/              → <対象>/quality/templates/  (既定では既存ファイルを保持)
   docs/operating-model.md → <対象>/quality/operating-model.md (同上)
   CLAUDE.md               → 前提規律へのポインタをマーカーブロックで追記・同期
+
+前提:
+  <対象>/.claude と .claude/skills が symlink でないこと(リンク先の破壊を防ぐため拒否される)
 USAGE
 }
 
@@ -50,13 +53,37 @@ if [ ! -e "$TARGET/.git" ]; then
   echo "注意: $TARGET は git リポジトリではありません。そのまま続行します。" >&2
 fi
 
-# 1. skills → .claude/skills(正本はVeridia。同名を上書き同期)
-# .claude/skills が symlink の場合、rm/cp がリンク先(多くは対象自身の正本)を
-# 破壊するため導入を拒否する
-if [ -L "$TARGET/.claude/skills" ]; then
-  err ".claude/skills が symlink のため導入できません(リンク先の正本を破壊する恐れ)。実ディレクトリに置き換えてから再実行してください"
+# --- 事前検証(何も変更する前に、失敗する条件をすべて確認する) ---
+
+# CLAUDE.md のマーカー整合。begin/end の対応が壊れていると除去できず、
+# 追記のたびにブロックが増殖するため、導入自体を始めない
+MARKER_BEGIN='<!-- veridia:begin -->'
+MARKER_END='<!-- veridia:end -->'
+claude_md="$TARGET/CLAUDE.md"
+if [ -e "$claude_md" ]; then
+  # CLAUDE.md → AGENTS.md 等の symlink は実体へ解決してから扱う(symlinkを壊さない)
+  claude_md="$(readlink -f "$claude_md")"
+  if ! MB="$MARKER_BEGIN" ME="$MARKER_END" perl -0777 -ne \
+      '$c = $_; $c =~ s/\Q$ENV{MB}\E.*?\Q$ENV{ME}\E//gs; exit((index($c, $ENV{MB}) >= 0 || index($c, $ENV{ME}) >= 0) ? 1 : 0)' \
+      "$claude_md"; then
+    err "CLAUDE.md のVeridiaマーカーが不完全です(begin/end の対応が壊れています): $claude_md — 手動で修復してから再実行してください(ファイルは変更していません)"
+  fi
+fi
+
+# .claude / .claude/skills の symlink 検査。rm/cp がリンク先(共有設定や対象自身の
+# 正本)を破壊するため導入を拒否する
+if [ -L "$TARGET/.claude" ] || [ -L "$TARGET/.claude/skills" ]; then
+  err ".claude または .claude/skills が symlink のため導入できません(リンク先の破壊を防ぐため)。実ディレクトリに置き換えてから再実行してください"
 fi
 mkdir -p "$TARGET/.claude/skills"
+# 深い階層のリンクも物理パスで検査する(書き込み先が対象プロジェクトの外なら拒否)
+target_phys="$(cd "$TARGET" && pwd -P)"
+skills_phys="$(cd "$TARGET/.claude/skills" && pwd -P)"
+if [ "$skills_phys" != "$target_phys/.claude/skills" ]; then
+  err "導入先の .claude/skills が対象プロジェクトの外を指しています(symlink経由): $skills_phys — 導入できません"
+fi
+
+# 1. skills → .claude/skills(正本はVeridia。同名を上書き同期)
 skill_count=0
 for dir in "$SRC"/skills/*/; do
   name="$(basename "$dir")"
@@ -104,21 +131,12 @@ else
 fi
 
 # 4. CLAUDE.md へ前提規律のポインタを追記(マーカーブロックは installer が管理・同期)
-#    Skillを経由せず quality/ 配下を直接編集する場合の取りこぼしを防ぐ
-MARKER_BEGIN='<!-- veridia:begin -->'
-MARKER_END='<!-- veridia:end -->'
-claude_md="$TARGET/CLAUDE.md"
+#    Skillを経由せず quality/ 配下を直接編集する場合の取りこぼしを防ぐ。
+#    マーカーの整合は事前検証済み(claude_md も解決済み)
 if [ -e "$claude_md" ]; then
-  # CLAUDE.md → AGENTS.md 等の symlink は実体へ解決してから書く(symlinkを壊さない)
-  claude_md="$(readlink -f "$claude_md")"
-  perl -0777 -i -pe \
-    's/\n*\Q<!-- veridia:begin -->\E.*?\Q<!-- veridia:end -->\E\n*/\n/gs; s/\s+\z/\n/' \
+  MB="$MARKER_BEGIN" ME="$MARKER_END" perl -0777 -i -pe \
+    's/\n*\Q$ENV{MB}\E.*?\Q$ENV{ME}\E\n*/\n/gs; s/\s+\z/\n/' \
     "$claude_md"
-  # begin/end の対応が壊れていると除去できず、追記のたびにブロックが増殖するため
-  # 不完全なマーカーが残っている場合は失敗させる
-  if grep -qF "$MARKER_BEGIN" "$claude_md" || grep -qF "$MARKER_END" "$claude_md"; then
-    err "CLAUDE.md のVeridiaマーカーが不完全です(begin/end の対応が壊れています): $claude_md — 手動で修復してから再実行してください"
-  fi
 fi
 cat >> "$claude_md" <<BLOCK
 
