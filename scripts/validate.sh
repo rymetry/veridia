@@ -37,10 +37,11 @@ for dir in "$ROOT"/skills/*/; do
   awk '/^---$/{c++; next} c==1 && /^description:/{found=1} END{exit !found}' "$skill" \
     || ng "skills/$name: frontmatter に description がない"
 
-  # SKILL.md が参照する references/*.md が実在するか
+  # SKILL.md が参照する references/*.md が実在するか(../<skill>/references/ の
+  # クロスSkill参照も、Skillディレクトリからの相対パスとして解決する)
   while IFS= read -r ref; do
     [ -f "$dir/$ref" ] || ng "skills/$name/SKILL.md が参照する $ref が存在しない"
-  done < <(grep -oh 'references/[A-Za-z0-9._-]*\.md' "$skill" | sort -u)
+  done < <(grep -ohE '(\.\./[A-Za-z0-9-]+/)?references/[A-Za-z0-9._-]+\.md' "$skill" | sort -u)
 done
 echo "Skill: ${skill_total}本を検査"
 
