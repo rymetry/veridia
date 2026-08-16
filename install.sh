@@ -10,7 +10,7 @@ usage() {
   --force-templates         既存の quality/templates/ と quality/operating-model.md を上書きする
 
 導入内容:
-  skills/                 → <対象>/.claude/skills/     (常に正本と同期・上書き)
+  skills/                 → <対象>/.claude/skills/     (同名Skillを正本で上書き)
   templates/              → <対象>/quality/templates/  (既定では既存ファイルを保持)
   docs/operating-model.md → <対象>/quality/operating-model.md (同上)
   CLAUDE.md               → 前提規律へのポインタをマーカーブロックで追記・同期
@@ -50,7 +50,12 @@ if [ ! -e "$TARGET/.git" ]; then
   echo "注意: $TARGET は git リポジトリではありません。そのまま続行します。" >&2
 fi
 
-# 1. skills → .claude/skills(正本はVeridia。常に同期)
+# 1. skills → .claude/skills(正本はVeridia。同名を上書き同期)
+# .claude/skills が symlink の場合、rm/cp がリンク先(多くは対象自身の正本)を
+# 破壊するため導入を拒否する
+if [ -L "$TARGET/.claude/skills" ]; then
+  err ".claude/skills が symlink のため導入できません(リンク先の正本を破壊する恐れ)。実ディレクトリに置き換えてから再実行してください"
+fi
 mkdir -p "$TARGET/.claude/skills"
 skill_count=0
 for dir in "$SRC"/skills/*/; do
@@ -63,6 +68,8 @@ done
 echo "skills: ${skill_count}本を .claude/skills/ へ同期しました"
 
 # 既定では既存ファイルを保持してコピーする(--force-templates で上書き)
+# 戻り値: 0=コピーした / 1=既存を保持した。コピー自体の失敗は即エラー終了する
+# (保持と混同して成功報告しないため)
 copy_keep_existing() {
   local src="$1" dest="$2"
   if [ -f "$dest" ] && [ "$FORCE_TEMPLATES" -eq 0 ]; then
@@ -71,7 +78,7 @@ copy_keep_existing() {
     fi
     return 1
   fi
-  cp "$src" "$dest"
+  cp "$src" "$dest" || err "コピーに失敗しました: $dest"
 }
 
 # 2. templates → quality/templates
@@ -79,12 +86,14 @@ mkdir -p "$TARGET/quality/templates"
 copied=0
 kept=0
 for f in "$SRC"/templates/*.md; do
+  [ -f "$f" ] || continue  # glob 不一致時の literal パス対策
   if copy_keep_existing "$f" "$TARGET/quality/templates/$(basename "$f")"; then
     copied=$((copied + 1))
   else
     kept=$((kept + 1))
   fi
 done
+[ $((copied + kept)) -gt 0 ] || err "templates/ に .md ファイルがありません"
 echo "templates: ${copied}枚をコピー、${kept}枚を保持しました"
 
 # 3. operating-model → quality/operating-model.md
@@ -103,8 +112,13 @@ if [ -e "$claude_md" ]; then
   # CLAUDE.md → AGENTS.md 等の symlink は実体へ解決してから書く(symlinkを壊さない)
   claude_md="$(readlink -f "$claude_md")"
   perl -0777 -i -pe \
-    's/\n*\Q<!-- veridia:begin -->\E.*?\Q<!-- veridia:end -->\E\n*/\n/s; s/\s+\z/\n/' \
+    's/\n*\Q<!-- veridia:begin -->\E.*?\Q<!-- veridia:end -->\E\n*/\n/gs; s/\s+\z/\n/' \
     "$claude_md"
+  # begin/end の対応が壊れていると除去できず、追記のたびにブロックが増殖するため
+  # 不完全なマーカーが残っている場合は失敗させる
+  if grep -qF "$MARKER_BEGIN" "$claude_md" || grep -qF "$MARKER_END" "$claude_md"; then
+    err "CLAUDE.md のVeridiaマーカーが不完全です(begin/end の対応が壊れています): $claude_md — 手動で修復してから再実行してください"
+  fi
 fi
 cat >> "$claude_md" <<BLOCK
 

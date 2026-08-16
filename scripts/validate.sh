@@ -46,6 +46,7 @@ kiritsu_count=0
 for dir in "$ROOT"/skills/*/; do
   name="$(basename "$dir")"
   [ "$name" = "testing-with-genai" ] && continue
+  [ -f "$dir/SKILL.md" ] || continue  # 欠損はセクション1がNGを記録済み(awkのexitで全体を止めない)
   block="$(awk '/^## 前提規律/{f=1; print; next} /^## /{f=0} f' "$dir/SKILL.md")"
   if [ -z "$block" ]; then
     ng "skills/$name/SKILL.md に「前提規律」節がない"
@@ -124,6 +125,30 @@ else
 fi
 echo "installer(symlink構成): symlink保持・ポインタ書き込み・冪等性を検査"
 
+# --- 4b. installer(危険構成の拒否) ---
+section "installer(危険構成の拒否)"
+TMP4="$(mktemp -d)"
+TMP5="$(mktemp -d)"
+trap 'rm -rf "$TMP" "$TMP2" "$TMP3" "$TMP4" "$TMP5"' EXIT
+
+# .claude/skills が symlink の対象(Veridia同形の自己ホスト構成)には導入を拒否し、
+# リンク先の正本を破壊しないこと
+mkdir -p "$TMP4/skills/own-skill" "$TMP4/.claude"
+echo "original content" > "$TMP4/skills/own-skill/SKILL.md"
+ln -s ../skills "$TMP4/.claude/skills"
+if "$ROOT/install.sh" "$TMP4" > /dev/null 2>&1; then
+  ng "installer が .claude/skills symlink 構成への導入を拒否しない"
+fi
+[ "$(cat "$TMP4/skills/own-skill/SKILL.md" 2>/dev/null)" = "original content" ] \
+  || ng "installer が symlink 先の正本を破壊した"
+
+# begin/end マーカーが不完全な CLAUDE.md への導入は失敗し、ブロックを増殖させないこと
+printf '# X\n\n<!-- veridia:begin -->\nbroken\n' > "$TMP5/CLAUDE.md"
+if "$ROOT/install.sh" "$TMP5" > /dev/null 2>&1; then
+  ng "installer が不完全なマーカーの CLAUDE.md への追記を拒否しない"
+fi
+echo "installer(危険構成の拒否): symlink拒否・正本保全・不完全マーカー拒否を検査"
+
 # --- 5. git hooks(.githooks/ の実行可否と動作) ---
 section "git hooks"
 for hook in pre-push pre-commit; do
@@ -166,15 +191,24 @@ run_policy() {
   printf '{"tool_input":{"command":%s}}' "$1" | bash "$policy" > /dev/null 2>&1
 }
 
-# ブロックすべきもの(exit 2)
+# ブロックすべきもの(exit 2)— ルールは git 層と同じ「main への push 禁止」
+if run_policy '"git push origin main"'; then
+  ng "policy が main への push をブロックしない"
+fi
 if run_policy '"git push --force origin main"'; then
   ng "policy が main への force push をブロックしない"
 fi
 if run_policy '"git push -f origin HEAD:main"'; then
-  ng "policy が refspec 経由の force push をブロックしない"
+  ng "policy が refspec 経由の push をブロックしない"
 fi
 if run_policy '"git push origin +main"'; then
-  ng "policy が +refspec の force push をブロックしない"
+  ng "policy が +refspec の push をブロックしない"
+fi
+if run_policy '"/usr/bin/git push origin main"'; then
+  ng "policy がパス指定の git をブロックしない(回帰)"
+fi
+if run_policy '"bash -c \"git push --force origin main\""'; then
+  ng "policy が bash -c ラッパーをブロックしない(回帰)"
 fi
 
 # 通すべきもの(exit 0)— 実際に起きた誤検知の回帰テストを含む
@@ -182,9 +216,15 @@ run_policy '"git push -u origin feature-branch"' \
   || ng "policy が通常の push をブロックしてしまう"
 run_policy '"git push --force origin feature-branch"' \
   || ng "policy が main 以外への force push をブロックしてしまう"
+run_policy '"git pull origin main"' \
+  || ng "policy が main からの pull をブロックしてしまう"
 run_policy '"gh pr edit 1 --body-file body.md # 本文に --force-templates と git push main の文字列を含む"' \
   || ng "policy がコマンド文字列の部分一致で誤検知する(回帰)"
-echo "Claude Code フック: ブロック3件・許可3件の判定を検査"
+run_policy '"echo \"do not run: git push --force origin main\" | tee note.txt"' \
+  || ng "policy が引用文字列内の語で誤検知する(回帰: パイプ分割)"
+run_policy '"git commit -m \"memo; git push --force origin main is forbidden\""' \
+  || ng "policy がコミットメッセージ内の語で誤検知する(回帰: セミコロン分割)"
+echo "Claude Code フック: ブロック6件・許可6件の判定を検査"
 
 echo
 if [ "$FAIL" -ne 0 ]; then

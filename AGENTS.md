@@ -22,5 +22,5 @@ git hooks(main への直接 push 禁止・コンフリクトマーカー検出)�
 - Secrets やローカル環境固有の状態をコミットしない。
 - `main` へ直接 push しない。変更は PR 経由で反映する(`.githooks/pre-push` でブロックされる)。
 - コンフリクトマーカーを残したまま作業を終えない(`.githooks/pre-commit` でブロックされる)。
-- `.claude/hooks/` は Claude Code 利用時の追加の防御層(force push ブロック・終了時検証)。
+- `.claude/hooks/` は Claude Code 利用時の追加の防御層(main への push ブロック・終了時検証)。
   強制の正本は `.githooks/` と GitHub の branch protection。

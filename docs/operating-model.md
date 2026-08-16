@@ -33,7 +33,8 @@ installer で導入する。
 
 導入後の配置:
 
-- `<対象>/.claude/skills/` — Skill本体(installer の再実行で常に正本と同期される)
+- `<対象>/.claude/skills/` — Skill本体(installer の再実行で同名Skillが正本で
+  上書きされる。正本側で削除・改名した旧Skillは対象から手動で削除する)
 - `<対象>/quality/templates/` — テンプレート(既存ファイルは保持される。
   プロジェクトに合わせて書き換えてよい)
 - `<対象>/quality/operating-model.md` — この運用モデル

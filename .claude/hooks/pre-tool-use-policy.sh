@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Claude Code 用の追加防御層: main への force push をブロックする
-# 強制の正本は .githooks/pre-push と GitHub の branch protection(こちらは早期警告)
+# Claude Code 用の追加防御層: main への push をブロックする
+# 強制の正本は .githooks/pre-push と GitHub の branch protection(こちらは早期警告)。
+# git 層と同じ不変条件(main への push 禁止)を守る。force 判定はしない。
 set -uo pipefail
 
 # ヒアドキュメントは stdin を占有するため、フックへの入力JSONは先に bash で受けて
@@ -11,8 +12,8 @@ python3 - <<'PY'
 import json
 import os
 import re
-import shlex
 import sys
+import shlex
 
 try:
     data = json.loads(os.environ.get("HOOK_INPUT") or "{}")
@@ -23,41 +24,84 @@ command = (data.get("tool_input") or {}).get("command") or ""
 if not command:
     sys.exit(0)
 
-# コマンド文字列全体の部分一致は誤検知する(例: PR本文に "--force-templates" や
-# "git push ... main" が含まれるだけで発火)。連結コマンドを分割し、
-# git push の呼び出し単位でトークン判定する。
-for segment in re.split(r"&&|\|\||;|\|", command):
-    try:
-        tokens = shlex.split(segment)
-    except ValueError:
-        tokens = segment.split()
-    if "git" not in tokens:
-        continue
-    rest = tokens[tokens.index("git") + 1:]
-    if "push" not in rest:
-        continue
+# 判定方針: コマンド文字列の部分一致は誤検知する(引用文字列内の語に反応する)ため、
+# shlex で引用符を尊重してトークン化し、演算子でセグメントに分割してから
+# 「git の push 呼び出しが main を対象にしているか」だけを見る。
+# sh/bash -c 'payload' は payload を再帰解析する。
+# 残余バイパス(コマンド置換・独自ラッパー等)は許容する — 強制は git 層が担う。
 
-    force = any(
-        t in ("-f", "--force") or t.startswith("--force-with-lease")
-        for t in rest
+SHELLS = {"bash", "sh", "zsh", "dash", "ksh"}
+OPERATORS = {";", ";;", "&&", "||", "|", "&"}
+
+
+def tokenize(cmd):
+    lex = shlex.shlex(cmd, posix=True, punctuation_chars="();<>|&;")
+    lex.whitespace_split = True
+    try:
+        return list(lex)
+    except ValueError:
+        return cmd.split()
+
+
+def segments(tokens):
+    seg = []
+    for t in tokens:
+        if t in OPERATORS or all(c in "();<>|&;" for c in t):
+            if seg:
+                yield seg
+            seg = []
+        else:
+            seg.append(t)
+    if seg:
+        yield seg
+
+
+def is_main_push(seg):
+    # env / VAR=value の前置を剥がす
+    i = 0
+    while i < len(seg) and (
+        seg[i] == "env" or re.match(r"^[A-Za-z_][A-Za-z0-9_]*=", seg[i])
+    ):
+        i += 1
+    seg = seg[i:]
+    if not seg:
+        return False
+
+    head = os.path.basename(seg[0])
+    if head in SHELLS:
+        # bash -c "..." は実行される payload なので再帰解析する
+        for j in range(1, len(seg) - 1):
+            if seg[j] == "-c":
+                return command_targets_main(seg[j + 1])
+        return False
+    if head != "git":
+        return False
+
+    rest = seg[1:]
+    pushish = "push" in rest or any(
+        re.match(r"^alias\.[^=]+=.*push", t) for t in rest
     )
-    main_target = any(
-        t in ("main", "refs/heads/main")
+    if not pushish:
+        return False
+    return any(
+        t in ("main", "refs/heads/main", "+main", "+refs/heads/main")
         or t.endswith(":main")
         or t.endswith(":refs/heads/main")
         for t in rest
     )
-    plus_refspec = any(
-        t.startswith("+")
-        and (t[1:] in ("main", "refs/heads/main")
-             or t.endswith(":main")
-             or t.endswith(":refs/heads/main"))
-        for t in rest
-    )
 
-    if (force and main_target) or plus_refspec:
-        print("Blocked: force push to main is not allowed.", file=sys.stderr)
-        sys.exit(2)
+
+def command_targets_main(cmd):
+    return any(is_main_push(seg) for seg in segments(tokenize(cmd)))
+
+
+if command_targets_main(command):
+    print(
+        "Blocked: pushing to main is not allowed. "
+        "Push a feature branch and open a PR.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
 
 sys.exit(0)
 PY
